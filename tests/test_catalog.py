@@ -1,14 +1,13 @@
 import asyncio
+import logging
 from aioconsul import Consul
 from functools import wraps
 
-import logging
-
 logger = logging.getLogger(__name__)
 
-
 # start a local agent for testing
-# consul agent -data-dir=/tmp/consul -server -bootstrap-expect=1
+# consul agent -config-file=tests/consul-agent.json
+
 
 def async_test(f):
     @wraps(f)
@@ -40,26 +39,3 @@ def test_catalog_datacenters():
     client = Consul()
     datacenters = yield from client.catalog.datacenters()
     assert datacenters == ['dc1']
-
-
-@async_test
-def test_kv_no_lock():
-    client = Consul()
-
-    try:
-        value = yield from client.kv.get('foo')
-    except client.kv.NotFound:
-        logger.info('it was not found, it is OK')
-    else:
-        logger.info('was found! check now')
-        assert value == 'bar'
-        assert value.consul.key == 'foo'
-
-    setted = yield from client.kv.set('foo', 'bar')
-    assert setted
-
-    value = yield from client.kv.get('foo')
-    assert value == 'bar', value
-
-    deleted = yield from client.kv.delete('foo')
-    assert deleted, deleted

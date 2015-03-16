@@ -32,9 +32,8 @@ def encode(value, **params):
         response.setdefault('CreateIndex', meta.create_index)
         response.setdefault('LockIndex', meta.lock_index)
         response.setdefault('ModifyIndex', meta.modify_index)
-        response.setdefault('Flags', 0)
     if 'key' in params:
-        response['key'] = params['key']
+        response['Key'] = params['key']
     if 'create_index' in params:
         response['CreateIndex'] = params['create_index']
     if 'lock_index' in params:

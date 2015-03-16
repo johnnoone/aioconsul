@@ -9,6 +9,9 @@ log = logging.getLogger(__name__)
 
 class SessionEndpoint(object):
 
+    class NotFound(ValueError):
+        pass
+
     def __init__(self, client, dc=None):
         self.client = client
         self.dc = dc
@@ -38,37 +41,41 @@ class SessionEndpoint(object):
             data['Behavior'] = behavior
         if ttl is not None:
             data['TTL'] = ttl
-        response = self.client.put(path, params=params, data=json.dumps(data))
+        response = yield from self.client.put(path, params=params, data=json.dumps(data))
         if response.status == 200:
-            return (yield from response.json())['ID']
+            return decode((yield from response.json()))
 
     @asyncio.coroutine
-    def destroy(self, session):
+    def delete(self, session):
         path = '/session/destroy/%s' % extract_id(session)
         params = {'dc': self.dc}
-        response = self.client.put(path, params=params)
+        response = yield from self.client.put(path, params=params)
         return response.status == 200
 
     @asyncio.coroutine
-    def info(self, session):
+    def get(self, session):
         path = '/session/info/%s' % extract_id(session)
         params = {'dc': self.dc}
-        response = self.client.get(path, params=params)
-        return (yield from response.json())
+        response = yield from self.client.get(path, params=params)
+        items = yield from response.json()
+        for item in (items or []):
+            return decode(item)
+        raise self.NotFound('Session %r was not found' % extract_id(session))
 
     @asyncio.coroutine
     def node(self, node):
         path = '/session/node/%s' % extract_id(node)
         params = {'dc': self.dc}
-        response = self.client.get(path, params=params)
-        return (yield from response.json())
+        response = yield from self.client.get(path, params=params)
+        items = yield from response.json()
+        return [decode(item) for item in (yield from response.json())]
 
     @asyncio.coroutine
     def items(self):
         path = '/session/list'
         params = {'dc': self.dc}
-        response = self.client.get(path, params=params)
-        return (yield from response.json())
+        response = yield from self.client.get(path, params=params)
+        return [decode(item) for item in (yield from response.json())]
 
     @asyncio.coroutine
     def renew(self, session):
@@ -76,3 +83,28 @@ class SessionEndpoint(object):
         params = {'dc': self.dc}
         response = self.client.put(path, params=params)
         return response.status == 200
+
+
+class Session(object):
+    def __init__(self, id, *, behavior=None, checks=None, create_index=None, node=None):
+        self.id = id
+        self.behavior = behavior
+        self.checks = checks
+        self.create_index = create_index
+        self.node = node
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __repr__(self):
+        return '<Session(id=%r)>' % self.id
+
+def decode(item):
+    params = {}
+    params['id'] = item.get('ID', None)
+    params['behavior'] = item.get('Behavior', None)
+    params['checks'] = item.get('Checks', None)
+    params['create_index'] = item.get('CreateIndex', None)
+    params['node'] = item.get('Node', None)
+    print(item)
+    return Session(**params)

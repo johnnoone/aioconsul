@@ -10,7 +10,7 @@ install:
   - unzip 0.5.0_linux_amd64.zip
 before_script:
   - >
-    `pwd`/consul agent -config-file=tests/consul-agent.json
-  - sleep 3
+    `pwd`/consul agent -config-file=tests/consul-agent.json&
+  - sleep 5
 script:
   - py.test
