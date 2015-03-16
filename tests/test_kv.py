@@ -5,9 +5,6 @@ from functools import wraps
 
 logger = logging.getLogger(__name__)
 
-# start a local agent for testing
-# consul agent -config-file=tests/consul-agent.json
-
 
 def async_test(f):
     @wraps(f)

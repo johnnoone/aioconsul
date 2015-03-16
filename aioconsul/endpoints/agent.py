@@ -15,12 +15,15 @@ class AgentEndpoint(object):
     @asyncio.coroutine
     def members(self):
         response = yield from self.client.get('/agent/members')
-        return (yield from response.json())
+        return [decode_member(item) for item in (yield from response.json())]
 
     @asyncio.coroutine
     def me(self):
         response = yield from self.client.get('/agent/self')
-        return (yield from response.json())
+        data = yield from response.json()
+        if 'Member' in data:
+            data['Member'] = decode_member(data['Member'])
+        return data
 
     @asyncio.coroutine
     def maintenance(self, enable, reason=None):
@@ -132,13 +135,27 @@ class AgentCheckEndpoint(object):
 
 class AgentServiceEndpoint(object):
 
+    class NotFound(ValueError):
+        pass
+
     def __init__(self, client):
         self.client = client
 
     @asyncio.coroutine
+    def get(self, service):
+        response = yield from self.client.get('/agent/services')
+        items = yield from response.json()
+        service_id = extract_id(service)
+        try:
+            return decode_service(items[service_id])
+        except KeyError:
+            raise self.NotFound('Service %r was not found' % service_id)
+
+    @asyncio.coroutine
     def items(self):
         response = yield from self.client.get('/agent/services')
-        return (yield from response.json())
+        items = yield from response.json()
+        return [decode_service(item) for item in items.values()]
 
     @asyncio.coroutine
     def register_script(self, name, script, *, id=None, tags=None,
@@ -222,3 +239,60 @@ class AgentServiceEndpoint(object):
         }
         response = yield from self.client.get(path, params=params)
         return response.status == 200
+
+
+class Member:
+    def __init__(self, name, address, port, **params):
+        self.name = name
+        self.address = name
+        self.port = port
+        for k, v in params.items():
+            setattr(self, k, v)
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __repr__(self):
+        return '<Member(name=%r, address=%r, port=%r)>' % (
+            self.name, self.address, self.port) 
+
+
+def decode_member(data):
+    params = {}
+    params['address'] = data.get('Addr')
+    params['name'] = data.get('Name')
+    params['port'] = data.get('Port')
+    params['status'] = data.get('Status')
+    params['tags'] = data.get('Tags')
+    params['delegate_cur'] = data.get('DelegateCur')
+    params['delegate_max'] = data.get('DelegateMax')
+    params['delegate_min'] = data.get('DelegateMin')
+    params['protocol_cur'] = data.get('ProtocolCur')
+    params['protocol_max'] = data.get('ProtocolMax')
+    params['protocol_min'] = data.get('ProtocolMin')
+    return Member(**params)
+
+
+class Service:
+    def __init__(self, id, name, *, address=None, port=None, tags=None):
+        self.id = id
+        self.name = name
+        self.address = address
+        self.port = port
+        self.tags = tags
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __repr__(self):
+        return '<Service(id=%r)>' % self.id 
+
+
+def decode_service(data):
+    params = {}
+    params['id'] = data.get('ID')
+    params['name'] = data.get('Name')
+    params['address'] = data.get('Address')
+    params['port'] = data.get('Port')
+    params['tags'] = data.get('Tags')
+    return Service(**params)

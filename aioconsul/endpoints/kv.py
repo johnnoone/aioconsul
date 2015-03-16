@@ -58,8 +58,8 @@ class KVEndpoint(object):
         return (yield from response.json())
 
     @asyncio.coroutine
-    def set(self, path, value, *, flags=0, cas=None, acquire=None, release=None):
-        """docstring for put"""
+    def set(self, path, value, *, flags=0, cas=None,
+            acquire=None, release=None):
         path = '/kv/%s' % str(path).lstrip('/')
         params = {'dc': self.dc,
                   'flags': flags}
@@ -74,7 +74,6 @@ class KVEndpoint(object):
 
     @asyncio.coroutine
     def delete(self, path, *, recurse=False, cas=None):
-        """docstring for put"""
         path = '/kv/%s' % str(path).lstrip('/')
         params = {'cas': cas,
                   'dc': self.dc,
@@ -84,7 +83,8 @@ class KVEndpoint(object):
 
 
 class Item(object):
-    def __init__(self, key, value, *, create_index=None, lock_index=None, modify_index=None):
+    def __init__(self, key, value, *, create_index=None,
+                 lock_index=None, modify_index=None):
         self.key = key
         self.value = value
         self.create_index = create_index

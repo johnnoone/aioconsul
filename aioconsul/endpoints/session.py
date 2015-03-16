@@ -25,7 +25,8 @@ class SessionEndpoint(object):
         return cloned
 
     @asyncio.coroutine
-    def create(self, *, lock_delay=None, node=None, name=None, checks=None, behavior=None, ttl=None):
+    def create(self, *, name=None, node=None, checks=None,
+               behavior=None, lock_delay=None, ttl=None):
         path = '/session/create'
         params = {'dc': self.dc}
         data = {}
@@ -41,7 +42,9 @@ class SessionEndpoint(object):
             data['Behavior'] = behavior
         if ttl is not None:
             data['TTL'] = ttl
-        response = yield from self.client.put(path, params=params, data=json.dumps(data))
+        response = yield from self.client.put(path,
+                                              params=params,
+                                              data=json.dumps(data))
         if response.status == 200:
             return decode((yield from response.json()))
 
@@ -67,7 +70,6 @@ class SessionEndpoint(object):
         path = '/session/node/%s' % extract_id(node)
         params = {'dc': self.dc}
         response = yield from self.client.get(path, params=params)
-        items = yield from response.json()
         return [decode(item) for item in (yield from response.json())]
 
     @asyncio.coroutine
@@ -86,7 +88,8 @@ class SessionEndpoint(object):
 
 
 class Session(object):
-    def __init__(self, id, *, behavior=None, checks=None, create_index=None, node=None):
+    def __init__(self, id, *, node=None, checks=None,
+                 create_index=None, behavior=None):
         self.id = id
         self.behavior = behavior
         self.checks = checks
@@ -98,6 +101,7 @@ class Session(object):
 
     def __repr__(self):
         return '<Session(id=%r)>' % self.id
+
 
 def decode(item):
     params = {}
