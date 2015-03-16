@@ -24,7 +24,8 @@ def async_test(f):
 def test_catalog_nodes():
     client = Consul()
     nodes = yield from client.catalog.nodes()
-    assert nodes == [{'Address': '10.5.0.142', 'Node': 'plissken.cafe.intra'}]
+    assert set(nodes[0].keys()) == {'Address', 'Node'}
+    assert nodes[0]['Node'] == 'my-local-node'
 
 
 @async_test
