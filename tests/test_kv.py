@@ -23,8 +23,11 @@ def test_kv_no_lock():
 @async_test
 def test_bunch():
     client = Consul()
-    keys = {'foo', 'bar', 'baz', 'quux'}
+    keys = {'foo', 'bar', 'baz', 'quux', '1/2'}
     for key in keys:
         yield from client.kv.set(key, 'yup')
-    found = yield from client.kv.keys('')
-    assert keys == found
+    found = yield from client.kv.keys('', separator='/')
+    assert {'foo', 'bar', 'baz', 'quux', '1/'} == found
+
+    data = yield from client.kv.items('1')
+    assert data == {'1/2': 'yup'}

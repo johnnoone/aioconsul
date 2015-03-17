@@ -38,14 +38,14 @@ class KVEndpoint:
                 raise self.NotFound('Key %r was not found' % path)
 
     @asyncio.coroutine
-    def items(self, path, *, separator=None):
+    def items(self, path):
         """fetch keys by prefix until separator"""
         path = '/kv/%s' % str(path).lstrip('/')
         params = {'dc': self.dc,
-                  'separator': separator,
                   'recurse': True}
         response = yield from self.client.get(path, params=params)
-        return [codec.decode(item) for item in (yield from response.json())]
+        data = yield from response.json()
+        return {item['Key']: codec.decode(item) for item in data}
 
     @asyncio.coroutine
     def keys(self, path, *, separator=None):
@@ -63,13 +63,10 @@ class KVEndpoint:
             acquire=None, release=None):
         path = '/kv/%s' % str(path).lstrip('/')
         params = {'dc': self.dc,
-                  'flags': flags}
-        if cas is not None:
-            params['cas'] = cas
-        if acquire is not None:
-            params['acquire'] = acquire
-        if acquire is not None:
-            params['acquire'] = acquire
+                  'flags': flags,
+                  'cas': cas,
+                  'acquire': acquire,
+                  'release': release}
         response = yield from self.client.put(path, params=params, data=value)
         return (yield from response.text()).strip() == 'true'
 

@@ -45,6 +45,10 @@ class Consul:
             del params['dc']
         if params.get('cas', -1) is None:
             del params['cas']
+        if params.get('acquire', -1) is None:
+            del params['acquire']
+        if params.get('release', -1) is None:
+            del params['release']
         if params.get('tag', -1) is None:
             del params['tag']
         for k, v in params.items():

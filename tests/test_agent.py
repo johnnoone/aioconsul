@@ -17,7 +17,6 @@ def test_maintenance():
 
     yield from client.agent.maintenance(True, 'Because!')
     checks = yield from client.agent.checks.items()
-    print(checks)
     for check in checks:
         if check.status == 'critical':
             break
@@ -26,6 +25,5 @@ def test_maintenance():
 
     yield from client.agent.maintenance(False, 'Do you speak martien?')
     checks = yield from client.agent.checks.items()
-    print(checks)
     for check in checks:
         assert check.status != 'critical'
