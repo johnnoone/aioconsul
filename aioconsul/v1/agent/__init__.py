@@ -31,7 +31,7 @@ class AgentEndpoint(object):
             'enable': enable,
             'reason': reason
         }
-        response = yield from self.client.get('/agent/maintenance',
+        response = yield from self.client.put('/agent/maintenance',
                                               params=params)
         return response.status == 200
 
@@ -69,15 +69,17 @@ class Member:
 
 def decode_member(data):
     params = {}
-    params['address'] = data.get('Addr')
-    params['name'] = data.get('Name')
-    params['port'] = data.get('Port')
-    params['status'] = data.get('Status')
-    params['tags'] = data.get('Tags')
-    params['delegate_cur'] = data.get('DelegateCur')
-    params['delegate_max'] = data.get('DelegateMax')
-    params['delegate_min'] = data.get('DelegateMin')
-    params['protocol_cur'] = data.get('ProtocolCur')
-    params['protocol_max'] = data.get('ProtocolMax')
-    params['protocol_min'] = data.get('ProtocolMin')
+    params['address'] = data.pop('Addr', None)
+    params['name'] = data.pop('Name', None)
+    params['port'] = data.pop('Port', None)
+    params['status'] = data.pop('Status', None)
+    params['tags'] = data.pop('Tags', None)
+    params['delegate_cur'] = data.pop('DelegateCur', None)
+    params['delegate_max'] = data.pop('DelegateMax', None)
+    params['delegate_min'] = data.pop('DelegateMin', None)
+    params['protocol_cur'] = data.pop('ProtocolCur', None)
+    params['protocol_max'] = data.pop('ProtocolMax', None)
+    params['protocol_min'] = data.pop('ProtocolMin', None)
+    if data:
+        logger.warn('Not used %s', data)
     return Member(**params)

@@ -45,6 +45,9 @@ class Consul(object):
             del params['dc']
         if params.get('cas', -1) is None:
             del params['cas']
+        for k, v in params.items():
+            if isinstance(v, bool):
+                params[k] = 'true' if v else 'false'
         response = yield from aiohttp.request(method, url, **kwargs)
         if response.status == 200:
             return response
