@@ -84,17 +84,17 @@ This library can consult catalog::
     client = Consul()
 
     # listing all nodes from catalog
-    for node in (yield from client.catalog.nodes.items()):
+    for node in (yield from client.catalog.nodes()):
         print(node.name)
         print(node.address)
 
     # getting a node with all of its service
-    node = yield from client.catalog.nodes.get('my-node')
+    node = yield from client.catalog.get('my-node')
     print(node.services)
 
     # getting all nodes that belong to a service
-    nodeset = yield from client.catalog.services.get('my-service')
-    print(nodeset.nodes)
+    nodes = yield from client.catalog.nodes(service='my-service')
+    print(nodes)
 
 
 Testing

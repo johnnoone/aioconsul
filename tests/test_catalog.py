@@ -6,12 +6,12 @@ from util import async_test
 @async_test
 def test_catalog_nodes():
     client = Consul()
-    nodes = yield from client.catalog.nodes.items()
+    nodes = yield from client.catalog.nodes()
     assert nodes[0].name == 'my-local-node'
 
-    with pytest.raises(client.catalog.nodes.NotFound):
-        yield from client.catalog.nodes.get('foo')
-    node = yield from client.catalog.nodes.get('my-local-node')
+    with pytest.raises(client.catalog.NotFound):
+        yield from client.catalog.get('foo')
+    node = yield from client.catalog.get('my-local-node')
     assert node.name == 'my-local-node'
     assert node.services['consul'].name == 'consul'
 
@@ -19,15 +19,17 @@ def test_catalog_nodes():
 @async_test
 def test_catalog_services():
     client = Consul()
-    services = yield from client.catalog.services.items()
+    services = yield from client.catalog.services()
     assert services == {'consul': []}
 
-    with pytest.raises(client.catalog.services.NotFound):
-        yield from client.catalog.services.get('foo')
-    srv = yield from client.catalog.services.get('consul')
-    assert srv.service == 'consul'
-    with pytest.raises(client.catalog.services.NotFound):
-        yield from client.catalog.services.get('consul', tag='dumb')
+    nodes = yield from client.catalog.nodes(service='foo')
+    assert len(nodes) == 0
+
+    nodes = yield from client.catalog.nodes(service='consul')
+    assert len(nodes) == 1
+
+    nodes = yield from client.catalog.nodes(service='consul', tag='dumb')
+    assert len(nodes) == 0
 
 
 @async_test

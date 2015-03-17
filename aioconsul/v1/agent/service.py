@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from aioconsul.bases import NodeService
 from aioconsul.exceptions import HTTPError, ValidationError
 from aioconsul.util import extract_id
 
@@ -89,11 +90,11 @@ class AgentServiceEndpoint:
         try:
             response = yield from self.client.put(path, data=json.dumps(data))
             if response.status == 200:
-                return Service(id=id or name,
-                               name=name,
-                               tags=tags,
-                               address=address,
-                               port=port)
+                return NodeService(id=id or name,
+                                   name=name,
+                                   tags=tags,
+                                   address=address,
+                                   port=port)
         except HTTPError as error:
             if error.status == 400:
                 raise ValidationError(str(error))
@@ -129,28 +130,9 @@ class AgentServiceEndpoint:
     delete = deregister
 
 
-class Service:
-    def __init__(self, id, name, *, address=None, port=None, tags=None):
-        self.id = id
-        self.name = name
-        self.address = address
-        self.port = port
-        self.tags = tags
-
-    def __eq__(self, other):
-        return self.id == other.id
-
-    def __repr__(self):
-        return '<Service(id=%r)>' % self.id
-
-
 def decode(data):
-    params = {}
-    params['id'] = data.pop('ID', None)
-    params['name'] = data.pop('Service', None)
-    params['address'] = data.pop('Address', None)
-    params['port'] = data.pop('Port', None)
-    params['tags'] = data.pop('Tags', None)
-    if data:
-        logger.warn('These were not decoded %r', data)
-    return Service(**params)
+    return NodeService(id=data.get('ID'),
+                       name=data.get('Service'),
+                       address=data.get('Address'),
+                       port=data.get('Port'),
+                       tags=data.get('Tags'))

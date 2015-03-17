@@ -1,9 +1,7 @@
 import asyncio
 import json
-import logging
+from aioconsul.bases import Check
 from aioconsul.util import extract_id
-
-logger = logging.getLogger(__name__)
 
 
 class AgentCheckEndpoint:
@@ -18,7 +16,6 @@ class AgentCheckEndpoint:
     def items(self):
         response = yield from self.client.get('/agent/checks')
         items = yield from response.json()
-        logger.info('/agent/checks %s', items)
         return [decode(item) for item in items.values()]
 
     @asyncio.coroutine
@@ -98,7 +95,6 @@ class AgentCheckEndpoint:
         response = yield from self.client.get('/agent/checks')
         items = yield from response.json()
         check_id = extract_id(check)
-        logger.info('look for %s from %s', check_id, items)
         try:
             return decode(items[check_id])
         except KeyError:
@@ -108,32 +104,12 @@ class AgentCheckEndpoint:
     delete = deregister
 
 
-class Check:
-    def __init__(self, id, *, name=None, node=None, notes=None, output=None,
-                 service_id=None, service_name=None, status=None):
-        self.id = id
-        self.name = name
-        self.node = node
-        self.notes = notes
-        self.output = output
-        self.service_id = service_id
-        self.service_name = service_name
-        self.status = status
-
-    def __repr__(self):
-        return '<Check(id=%r, name=%r)>' % (self.id, self.name)
-
-
-def decode(item):
-    params = {}
-    params['id'] = item.pop('CheckID', None)
-    params['name'] = item.pop('Name', None)
-    params['node'] = item.pop('Node', None)
-    params['notes'] = item.pop('Notes', None)
-    params['output'] = item.pop('Output', None)
-    params['service_id'] = item.pop('ServiceID', None)
-    params['service_name'] = item.pop('ServiceName', None)
-    params['status'] = item.pop('Status', None)
-    if item:
-        logger.warn('These were not decoded %s', item)
-    return Check(**params)
+def decode(data):
+    return Check(id=data.get('CheckID'),
+                 name=data.get('Name'),
+                 status=data.get('Status'),
+                 notes=data.get('Notes'),
+                 output=data.get('Output'),
+                 service_id=data.get('ServiceID'),
+                 service_name=data.get('ServiceName'),
+                 node=data.get('Node'))

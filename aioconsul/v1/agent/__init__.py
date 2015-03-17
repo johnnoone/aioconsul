@@ -3,7 +3,7 @@ import logging
 from .check import AgentCheckEndpoint
 from .service import AgentServiceEndpoint
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class AgentEndpoint:
