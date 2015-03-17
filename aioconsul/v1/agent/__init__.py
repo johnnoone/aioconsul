@@ -6,7 +6,8 @@ from .service import AgentServiceEndpoint
 log = logging.getLogger(__name__)
 
 
-class AgentEndpoint(object):
+class AgentEndpoint:
+
     def __init__(self, client):
         self.client = client
         self.checks = AgentCheckEndpoint(client)

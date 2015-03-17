@@ -7,7 +7,6 @@ def test_decode():
     assert obj1 == 'toto'
     assert obj1.consul.key == 1
 
-    
     obj2 = codec.decode({
         'Key': 1,
         'Value': 'toto'
@@ -28,8 +27,8 @@ def test_encode_string():
     src = codec.ConsulString('bar', consul=codec.ConsulMeta(1, 2, 3, 4))
     obj = codec.encode(src)
     assert obj == {'Flags': 1, 'Value': 'bar',
-                    'Key': 1, 'CreateIndex': 2,
-                    'LockIndex': 3, 'ModifyIndex': 4}
+                   'Key': 1, 'CreateIndex': 2,
+                   'LockIndex': 3, 'ModifyIndex': 4}
     obj = codec.encode(src, lock_index='quux')
     assert obj == {'Flags': 1, 'Value': 'bar',
                    'Key': 1, 'CreateIndex': 2,

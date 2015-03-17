@@ -7,7 +7,7 @@ from aioconsul.util import extract_id
 log = logging.getLogger(__name__)
 
 
-class SessionEndpoint(object):
+class SessionEndpoint:
 
     class NotFound(ValueError):
         pass
@@ -87,7 +87,7 @@ class SessionEndpoint(object):
         return response.status == 200
 
 
-class Session(object):
+class Session:
     def __init__(self, id, *, node=None, checks=None,
                  create_index=None, behavior=None):
         self.id = id

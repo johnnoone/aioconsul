@@ -6,7 +6,7 @@ from aioconsul.util import extract_id
 logger = logging.getLogger(__name__)
 
 
-class AgentCheckEndpoint(object):
+class AgentCheckEndpoint:
 
     class NotFound(ValueError):
         pass

@@ -7,7 +7,7 @@ from aioconsul.exceptions import HTTPError
 logger = logging.getLogger(__name__)
 
 
-class KVEndpoint(object):
+class KVEndpoint:
 
     class NotFound(ValueError):
         pass

@@ -7,7 +7,7 @@ from .exceptions import HTTPError, UnknownLeader
 log = logging.getLogger(__name__)
 
 
-class Consul(object):
+class Consul:
 
     def __init__(self, api=None, version=None):
         self.api = str(api or 'http://127.0.0.1:8500').rstrip('/')
@@ -45,6 +45,8 @@ class Consul(object):
             del params['dc']
         if params.get('cas', -1) is None:
             del params['cas']
+        if params.get('tag', -1) is None:
+            del params['tag']
         for k, v in params.items():
             if isinstance(v, bool):
                 params[k] = 'true' if v else 'false'

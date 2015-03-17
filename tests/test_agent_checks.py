@@ -1,11 +1,7 @@
 import asyncio
-import logging
 import pytest
 from aioconsul import Consul
-from functools import wraps
 from util import async_test
-
-logger = logging.getLogger(__name__)
 
 
 @async_test
