@@ -17,6 +17,12 @@ def async_test(f):
 
 
 @async_test
+def setup_function(function):
+    client = Consul()
+    return
+
+
+@async_test
 def test_catalog_nodes():
     client = Consul()
     nodes = yield from client.catalog.nodes()

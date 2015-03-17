@@ -110,5 +110,4 @@ def decode(item):
     params['checks'] = item.get('Checks', None)
     params['create_index'] = item.get('CreateIndex', None)
     params['node'] = item.get('Node', None)
-    print(item)
     return Session(**params)

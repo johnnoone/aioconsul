@@ -17,13 +17,17 @@ def async_test(f):
 
 
 @async_test
-def test_sessions():
+def setup_function(function):
     client = Consul()
-
     sessions = yield from client.sessions.items()
     for session in sessions:
         logger.info('destroy previous session %s', session)
         yield from client.sessions.delete(session)
+
+
+@async_test
+def test_sessions():
+    client = Consul()
 
     # create a session
     session1 = yield from client.sessions.create()

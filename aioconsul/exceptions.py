@@ -1,3 +1,7 @@
+"""
+    Exceptions
+    ~~~~~~~~~~
+"""
 
 
 class ClientError(Exception):
@@ -14,4 +18,12 @@ class HTTPError(ClientError):
 
 class UnknownLeader(ClientError):
     """Raised when leader is not known (for staleness of data)."""
+    pass
+
+
+# high level
+
+class ValidationError(ValueError):
+    """Raised when something does not validate.
+    """
     pass

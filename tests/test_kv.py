@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import pytest
 from aioconsul import Consul
 from functools import wraps
 
@@ -17,17 +18,18 @@ def async_test(f):
 
 
 @async_test
+def setup_function(function):
+    client = Consul()
+    for key in (yield from client.kv.keys('')):
+        yield from client.kv.delete(key)
+
+
+@async_test
 def test_kv_no_lock():
     client = Consul()
 
-    try:
+    with pytest.raises(client.kv.NotFound):
         value = yield from client.kv.get('foo')
-    except client.kv.NotFound:
-        logger.info('it was not found, it is OK')
-    else:
-        logger.info('was found! check now')
-        assert value == 'bar'
-        assert value.consul.key == 'foo'
 
     setted = yield from client.kv.set('foo', 'bar')
     assert setted
@@ -37,3 +39,13 @@ def test_kv_no_lock():
 
     deleted = yield from client.kv.delete('foo')
     assert deleted, deleted
+
+
+@async_test
+def test_bunch():
+    client = Consul()
+    keys = {'foo', 'bar', 'baz', 'quux'}
+    for key in keys:
+        setted = yield from client.kv.set(key, 'yup')
+    found = yield from client.kv.keys('')
+    assert keys == found

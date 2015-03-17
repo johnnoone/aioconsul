@@ -3,9 +3,8 @@ import copy
 import logging
 from aioconsul import codec
 from aioconsul.exceptions import HTTPError
-from base64 import b64decode
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class KVEndpoint(object):
@@ -22,7 +21,7 @@ class KVEndpoint(object):
         if 'dc' in kwargs:
             cloned.dc = kwargs.pop('dc')
         if kwargs:
-            log.warn('some attrs where not used! %s', kwargs)
+            logger.warn('some attrs where not used! %s', kwargs)
         return cloned
 
     @asyncio.coroutine
@@ -53,9 +52,11 @@ class KVEndpoint(object):
         """list keys by prefix until separator"""
         path = '/kv/%s' % str(path).lstrip('/')
         params = {'dc': self.dc,
-                  'recurse': True}
+                  'keys': True,
+                  'recurse': True,
+                  'separator': separator}
         response = yield from self.client.get(path, params=params)
-        return (yield from response.json())
+        return set((yield from response.json()))
 
     @asyncio.coroutine
     def set(self, path, value, *, flags=0, cas=None,
@@ -80,32 +81,3 @@ class KVEndpoint(object):
                   'recurse': recurse}
         response = yield from self.client.delete(path, params=params)
         return (yield from response.text())
-
-
-class Item(object):
-    def __init__(self, key, value, *, create_index=None,
-                 lock_index=None, modify_index=None):
-        self.key = key
-        self.value = value
-        self.create_index = create_index
-        self.lock_index = lock_index
-        self.modify_index = modify_index
-
-    def __repr__(self):
-        return '<Item(key=%r, value=%r)>' % (self.key, self.value)
-
-
-def load_item(data, Item=Item):
-    """Loads item from API data."""
-    params = {}
-    if 'Key' in data:
-        params['key'] = data['Key']
-    if 'Value' in data:
-        value = b64decode(data['Value']).decode('utf-8')
-        if data.get('Flags', None):
-            log.warn('not implemented yet')
-        params['value'] = value
-    params['create_index'] = data.get('CreateIndex', None)
-    params['lock_index'] = data.get('LockIndex', None)
-    params['modify_index'] = data.get('ModifyIndex', None)
-    return Item(**params)

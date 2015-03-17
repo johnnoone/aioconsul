@@ -1,7 +1,7 @@
 import aiohttp
 import asyncio
 import logging
-from . import endpoints
+from . import v1
 from .exceptions import HTTPError, UnknownLeader
 
 log = logging.getLogger(__name__)
@@ -12,10 +12,10 @@ class Consul(object):
     def __init__(self, api=None, version=None):
         self.api = str(api or 'http://127.0.0.1:8500').rstrip('/')
         self.version = str(version or 'v1').strip('/')
-        self.agent = endpoints.AgentEndpoint(self)
-        self.catalog = endpoints.CatalogEndpoint(self)
-        self.kv = endpoints.KVEndpoint(self)
-        self.sessions = endpoints.SessionEndpoint(self)
+        self.agent = v1.AgentEndpoint(self)
+        self.catalog = v1.CatalogEndpoint(self)
+        self.kv = v1.KVEndpoint(self)
+        self.sessions = v1.SessionEndpoint(self)
 
     @asyncio.coroutine
     def get(self, path, **kwargs):
@@ -54,5 +54,5 @@ class Consul(object):
         if headers.get('X-Consul-KnownLeader', None) == 'false':
             raise UnknownLeader(body)
 
-        log.error('%s %s %s %s %s', response.status, method, url, body, kwargs)
+        log.warn('%s %s %s %s %s', response.status, method, url, body, kwargs)
         raise HTTPError(response.status, body, url, data=kwargs)
