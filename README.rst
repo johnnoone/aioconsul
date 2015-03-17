@@ -1,7 +1,101 @@
 AIO Consul
 ----------
 
-Implements consul with asyncio
+Implements consul with asyncio.
+It is not ready for production yet.
+
+
+Installation
+~~~~~~~~~~~~
+
+::
+
+    pip install aioconsul
+
+
+Agent checks
+~~~~~~~~~~~~
+
+Currently this library can handle simple checks::
+
+    from aioconsul import Consul
+    client = Consul()
+
+    # list all checks
+    for check in (yield from client.agent.checks.items()):
+        print(check.id)
+
+    # look for a check
+    check = yield from client.agent.checks.get('my-check')
+
+    # register a script check
+    check = yield from client.agent.checks.register_script('my-script-check',
+                                                           script='~/script.sh',
+                                                           interval='5m')
+
+    # register a http check
+    check = yield from client.agent.checks.register_ttl('my-http-check',
+                                                        http='http://example.com',
+                                                        interval='10h')
+
+    # register a ttl check
+    check = yield from client.agent.checks.register_ttl('my-ttl-check',
+                                                        ttl='10s')
+
+    # mark ttl check passing
+    yield from client.agent.checks.passing(check, note='Make it so')
+
+    # deregister any check
+    yield from client.agent.checks.deregister(check)
+
+
+Agent services
+~~~~~~~~~~~~~~
+
+Currently this library can handle simple checks::
+
+    from aioconsul import Consul
+    client = Consul()
+
+    # list all services
+    for srv in (yield from client.agent.services.items()):
+        print(srv.id)
+
+    # search a service by its name
+    srv = yield from client.agent.services.get('my-service')
+
+    # disable a service
+    yield from client.agent.services.maintenance(srv,
+                                                 enable=False,
+                                                 reason='Migrating stuff')
+
+    # and reenable it
+    yield from client.agent.services.maintenance(srv,
+                                                 enable=True,
+                                                 reason='Done')
+
+
+Catalog
+~~~~~~~
+
+This library can consult catalog::
+
+    from aioconsul import Consul
+    client = Consul()
+
+    # listing all nodes from catalog
+    for node in (yield from client.catalog.nodes.items()):
+        print(node.name)
+        print(node.address)
+
+    # getting a node with all of its service
+    node = yield from client.catalog.nodes.get('my-node')
+    print(node.services)
+
+    # getting all nodes that belong to a service
+    nodeset = yield from client.catalog.services.get('my-service')
+    print(nodeset.nodes)
+
 
 Testing
 ~~~~~~~
