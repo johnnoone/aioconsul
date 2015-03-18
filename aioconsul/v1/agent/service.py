@@ -47,8 +47,8 @@ class AgentServiceEndpoint:
         return response
 
     @asyncio.coroutine
-    def register_ttl(self, name, ttl, *, id=None, tags=None,
-                     address=None, port=None, interval=None):
+    def register_ttl(self, name, ttl, *, id=None,
+                     tags=None, address=None, port=None):
         response = yield from self.register(id=id,
                                             name=name,
                                             tags=tags,

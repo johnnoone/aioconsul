@@ -1,9 +1,9 @@
 import asyncio
 import logging
 from aioconsul.bases import Node, NodeService, Check
+from aioconsul.constants import CHECK_STATES
 from aioconsul.exceptions import ValidationError
 from aioconsul.util import extract_id
-
 logger = logging.getLogger(__name__)
 
 
@@ -17,14 +17,14 @@ class HealthEndpoint:
         path = '/health/node/%s' % extract_id(node)
         params = {'dc': dc}
         response = yield from self.client.get(path, params=params)
-        return [decode(data) for data in (yield from response.json())]
+        return {decode(data) for data in (yield from response.json())}
 
     @asyncio.coroutine
     def checks(self, service, *, dc=None):
         path = '/health/checks/%s' % extract_id(service)
         params = {'dc': dc}
         response = yield from self.client.get(path, params=params)
-        return [decode(data) for data in (yield from response.json())]
+        return {decode(data) for data in (yield from response.json())}
 
     @asyncio.coroutine
     def service(self, service, *, dc=None, tag=None, state=None):
@@ -38,24 +38,28 @@ class HealthEndpoint:
         elif state:
             raise ValidationError('State must be passing')
         response = yield from self.client.get(path, params=params)
-        nodes = []
+        nodes = set()
         for data in (yield from response.json()):
-            node = Node(data['Node']['Node'],
-                        data['Node']['Address'])
+            print(data)
+            node = Node(name=data['Node']['Node'],
+                        address=data['Node']['Address'])
             node.service = NodeService(id=data['Service']['ID'],
-                                       name=data['Service']['Name'],
+                                       name=data['Service']['Service'],
                                        tags=data['Service']['Tags'],
+                                       address=data['Service']['Address'],
                                        port=data['Service']['Port'])
             node.checks = [decode(chk) for chk in data['Checks']]
-            nodes.append(node)
+            nodes.add(node)
         return nodes
 
     @asyncio.coroutine
     def state(self, state, *, dc=None):
+        if state not in CHECK_STATES:
+            raise ValidationError('Wrong state %r' % state)
         path = '/health/state/%s' % state
         params = {'dc': dc}
         response = yield from self.client.get(path, params=params)
-        return [decode(data) for data in (yield from response.json())]
+        return {decode(data) for data in (yield from response.json())}
 
 
 def decode(data):

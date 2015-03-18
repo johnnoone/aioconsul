@@ -74,19 +74,26 @@ class AgentCheckEndpoint:
 
     @asyncio.coroutine
     def passing(self, check, note=None):
-        path = '/agent/check/pass/%s' % extract_id(check)
-        response = yield from self.client.get(path, params={'note': note})
-        return response.status == 200
+        response = yield from self.mark(check, 'passing', note=note)
+        return response
 
     @asyncio.coroutine
     def warning(self, check, note=None):
-        path = '/agent/check/warn/%s' % extract_id(check)
-        response = yield from self.client.get(path, params={'note': note})
-        return response.status == 200
+        response = yield from self.mark(check, 'warning', note=note)
+        return response
 
     @asyncio.coroutine
     def failing(self, check, note=None):
-        path = '/agent/check/fail/%s' % extract_id(check)
+        response = yield from self.mark(check, 'critical', note=note)
+        return response
+
+    @asyncio.coroutine
+    def mark(self, check, state, *, note=None):
+        route = {'passing': 'pass',
+                 'warning': 'warn',
+                 'failing': 'fail',
+                 'critical': 'fail'}.get(state, state)
+        path = '/agent/check/%s/%s' % (route, extract_id(check))
         response = yield from self.client.get(path, params={'note': note})
         return response.status == 200
 

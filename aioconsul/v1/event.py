@@ -25,7 +25,9 @@ class EventEndpoint:
         params = {'dc': dc, 'node': node_filter,
                   'service': service_filter, 'tag': tag_filter}
         try:
-            response = yield from self.client.put(path, params=params, data=data)
+            response = yield from self.client.put(path,
+                                                  params=params,
+                                                  data=data)
         except HTTPError as error:
             if error.status == 500:
                 raise ValidationError(str(error))
