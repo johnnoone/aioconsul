@@ -1,69 +1,31 @@
-import aiohttp
 import asyncio
-import logging
 from . import v1
-from .exceptions import HTTPError, UnknownLeader
-
-log = logging.getLogger(__name__)
+from .request import RequestHandler, RequestWrapper
 
 
-class Consul:
+class Consul(RequestWrapper):
 
     def __init__(self, api=None):
-        self.api = str(api or 'http://127.0.0.1:8500').rstrip('/')
-        self.version = 'v1'
-        self.acl = v1.ACLEndpoint(self)
-        self.agent = v1.AgentEndpoint(self)
-        self.catalog = v1.CatalogEndpoint(self)
-        self.event = v1.EventEndpoint(self)
-        self.health = v1.HealthEndpoint(self)
-        self.kv = v1.KVEndpoint(self)
-        self.session = v1.SessionEndpoint(self)
+        api = str(api or 'http://127.0.0.1:8500').rstrip('/')
+        RequestWrapper.__init__(self, RequestHandler(api, 'v1'))
 
-    @asyncio.coroutine
-    def get(self, path, **kwargs):
-        response = yield from self.request('GET', path, **kwargs)
-        return response
+        self.acl = v1.ACLEndpoint(self.req_handler)
+        self.agent = v1.AgentEndpoint(self.req_handler)
+        self.catalog = v1.CatalogEndpoint(self.req_handler)
+        self.event = v1.EventEndpoint(self.req_handler)
+        self.health = v1.HealthEndpoint(self.req_handler)
+        self.kv = v1.KVEndpoint(self.req_handler)
+        self.session = v1.SessionEndpoint(self.req_handler)
 
-    @asyncio.coroutine
-    def post(self, path, **kwargs):
-        response = yield from self.request('POST', path, **kwargs)
-        return response
+    @property
+    def api(self):
+        return self.req_handler.api
 
-    @asyncio.coroutine
-    def put(self, path, **kwargs):
-        response = yield from self.request('PUT', path, **kwargs)
-        return response
-
-    @asyncio.coroutine
-    def delete(self, path, **kwargs):
-        response = yield from self.request('DELETE', path, **kwargs)
-        return response
+    @property
+    def version(self):
+        return self.req_handler.version
 
     @asyncio.coroutine
     def request(self, method, path, **kwargs):
-        url = '%s/%s/%s' % (self.api, self.version, path.lstrip('/'))
-
-        def parameters(data):
-
-            def prepare(value):
-                if value is True:
-                    return 'true'
-                if value is False:
-                    return 'false'
-                return value
-
-            return {k: prepare(v) for k, v in data.items() if v is not None}
-
-        kwargs['params'] = parameters(kwargs.setdefault('params', {}))
-        response = yield from aiohttp.request(method, url, **kwargs)
-        if response.status == 200:
-            return response
-
-        headers = response.headers
-        body = yield from response.text()
-        if headers.get('X-Consul-KnownLeader', None) == 'false':
-            raise UnknownLeader(body)
-
-        log.warn('%s %s %s %s %s', response.status, method, url, body, kwargs)
-        raise HTTPError(response.status, body, url, data=kwargs)
+        response = yield from self.req_handler.request(method, path, **kwargs)
+        return response

@@ -21,6 +21,11 @@ class UnknownLeader(ClientError):
     pass
 
 
+class ACLSupportDisabled(ClientError):
+    """Raised when client does not support ACL."""
+    pass
+
+
 # high level
 
 class ValidationError(ValueError):

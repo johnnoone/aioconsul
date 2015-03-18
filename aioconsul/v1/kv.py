@@ -16,18 +16,20 @@ class KVEndpoint:
         self.client = client
         self.dc = dc
 
-    def __call__(self, **kwargs):
-        cloned = copy.copy(self)
-        if 'dc' in kwargs:
-            cloned.dc = kwargs.pop('dc')
-        if kwargs:
-            logger.warn('some attrs where not used! %s', kwargs)
-        return cloned
+    def dc(self, name):
+        """
+        Wraps requests to the specified dc.
+
+        :param name: the datacenter name
+        """
+        instance = copy.copy(self)
+        instance.dc = name
+        return instance
 
     @asyncio.coroutine
     def get(self, path):
-        """fetch one key"""
-        fullpath = '/kv/%s' % str(path).lstrip('/')
+        """Fetch one value"""
+        fullpath = '/kv/%s' % path
         params = {'dc': self.dc}
         try:
             response = yield from self.client.get(fullpath, params=params)
@@ -39,8 +41,8 @@ class KVEndpoint:
 
     @asyncio.coroutine
     def items(self, path):
-        """fetch keys by prefix until separator"""
-        path = '/kv/%s' % str(path).lstrip('/')
+        """fetch values by prefix"""
+        path = '/kv/%s' % path
         params = {'dc': self.dc,
                   'recurse': True}
         response = yield from self.client.get(path, params=params)
@@ -50,7 +52,7 @@ class KVEndpoint:
     @asyncio.coroutine
     def keys(self, path, *, separator=None):
         """list keys by prefix until separator"""
-        path = '/kv/%s' % str(path).lstrip('/')
+        path = '/kv/%s' % path
         params = {'dc': self.dc,
                   'keys': True,
                   'recurse': True,
@@ -61,7 +63,7 @@ class KVEndpoint:
     @asyncio.coroutine
     def set(self, path, value, *, flags=0, cas=None,
             acquire=None, release=None):
-        path = '/kv/%s' % str(path).lstrip('/')
+        path = '/kv/%s' % path
         params = {'dc': self.dc,
                   'flags': flags,
                   'cas': cas,
@@ -72,7 +74,7 @@ class KVEndpoint:
 
     @asyncio.coroutine
     def delete(self, path, *, recurse=False, cas=None):
-        path = '/kv/%s' % str(path).lstrip('/')
+        path = '/kv/%s' % path
         params = {'cas': cas,
                   'dc': self.dc,
                   'recurse': recurse}

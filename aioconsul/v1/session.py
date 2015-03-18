@@ -16,13 +16,15 @@ class SessionEndpoint:
         self.client = client
         self.dc = dc
 
-    def __call__(self, **kwargs):
-        cloned = copy.copy(self)
-        if 'dc' in kwargs:
-            cloned.dc = kwargs.pop('dc')
-        if kwargs:
-            log.warn('some attrs where not used! %s', kwargs)
-        return cloned
+    def dc(self, name):
+        """
+        Wraps requests to the specified dc.
+
+        :param name: the datacenter name
+        """
+        instance = copy.copy(self)
+        instance.dc = name
+        return instance
 
     @asyncio.coroutine
     def create(self, *, name=None, node=None, checks=None,
