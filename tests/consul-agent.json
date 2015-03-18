@@ -2,5 +2,6 @@
   "bootstrap_expect": 1,
   "data_dir": "/tmp/consul",
   "node_name": "my-local-node",
-  "server": true
+  "server": true,
+  "acl_datacenter": "my-local-node"
 }

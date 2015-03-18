@@ -54,6 +54,7 @@ class RequestHandler:
             return response
 
         headers = response.headers
+        print(headers)
         body = yield from response.text()
         if headers.get('X-Consul-KnownLeader', None) == 'false':
             raise UnknownLeader(body)

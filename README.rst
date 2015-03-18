@@ -3,6 +3,7 @@ AIO Consul
 
 Implements consul with asyncio.
 It is not ready for production yet.
+It works with python >= 3.3.
 
 
 Installation
@@ -95,6 +96,22 @@ This library can consult catalog::
     # getting all nodes that belong to a service
     nodes = yield from client.catalog.nodes(service='my-service')
     print(nodes)
+
+
+Events
+~~~~~~
+
+::
+
+    from aioconsul import Consul
+    client = Consul()
+
+    # send an event
+    event = yield from client.event.fire('my-event', node_filter='.*')
+
+    # list all events
+    for event in (yield from client.event.items()):
+        print(event.name)
 
 
 Testing
