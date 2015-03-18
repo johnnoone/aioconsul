@@ -1,0 +1,91 @@
+import asyncio
+import json
+import logging
+from collections import defaultdict
+from aioconsul.bases import ACL, Rule
+from aioconsul.util import extract_id
+
+logger = logging.getLogger(__name__)
+
+
+class ACLEndpoint:
+
+    def __init__(self, client):
+        self.client = client
+
+    @asyncio.coroutine
+    def create(self, acl, *, type, rules):
+        path = 'acl/create'
+        name = getattr(acl, 'name', acl)
+        data = {
+            'Name': name,
+            'Type': type,
+            'Rules': encode_rules(rules)
+        }
+        response = yield from self.client.put(path, data=json.dumps(data))
+        id = (yield from response.json())['ID']
+        return ACL(id=id, name=name, type=type, rules=rules)
+
+    @asyncio.coroutine
+    def update(self, acl, *, name=None, type=None, rules=None):
+        path = 'acl/update'
+        data = {
+            'ID': extract_id(acl),
+        }
+        if name is not None:
+            data['Name'] = name
+        if type is not None:
+            data['Type'] = type
+        if rules is not None:
+            data['Rules'] = encode_rules(rules)
+        response = yield from self.client.put(path, data=json.dumps(data))
+        return (yield from response.json())['ID']
+
+    @asyncio.coroutine
+    def destroy(self, acl):
+        path = 'acl/destroy/%s' % extract_id(acl)
+        response = yield from self.client.put(path)
+        return response.status == 200
+
+    @asyncio.coroutine
+    def get(self, acl):
+        path = 'acl/info/%s' % extract_id(acl)
+        response = yield from self.client.get(path)
+        for data in (yield from response.json()):
+            return decode(data)
+
+    @asyncio.coroutine
+    def clone(self, acl):
+        path = 'acl/info/%s' % extract_id(acl)
+        response = yield from self.client.put(path)
+        return (yield from response.json())['ID']
+
+    @asyncio.coroutine
+    def items(self):
+        path = 'acl/list'
+        response = yield from self.client.get(path)
+        return [decode(data) for data in (yield from response.json())]
+
+
+def decode(data):
+    return ACL(id=data.get('ID'),
+               name=data.get('Name'),
+               type=data.get('Type'),
+               rules=decode_rules(data.get('Rules')),
+               create_index=data.get('CreateIndex'),
+               modify_index=data.get('ModifyIndex'))
+
+
+def decode_rules(data):
+    data, rules = data or {}, []
+    for type, members in data.items():
+        for value, info in members.items():
+            rules.append(Rule(type, value, info['policy']))
+    return rules
+
+
+def encode_rules(rules):
+    data, rules = defaultdict(dict), rules or []
+    for type, value, policy in rules:
+        data[type][value] = {'policy': policy}
+    return data

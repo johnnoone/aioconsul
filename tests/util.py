@@ -34,6 +34,6 @@ def pre_clean():
         yield from client.kv.delete(key)
 
     # remove sessions
-    sessions = yield from client.sessions.items()
+    sessions = yield from client.session.items()
     for session in sessions:
-        yield from client.sessions.delete(session)
+        yield from client.session.delete(session)

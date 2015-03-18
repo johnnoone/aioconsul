@@ -1,9 +1,13 @@
+from aioconsul import bases
 from aioconsul import codec
 
 
 def test_decode():
     obj1 = codec.ConsulString('toto',
-                              consul=codec.ConsulMeta(1, 2, 3, 4))
+                              consul=bases.KeyMeta(1,
+                                                   create_index=2,
+                                                   lock_index=3,
+                                                   modify_index=4))
     assert obj1 == 'toto'
     assert obj1.consul.key == 1
 
@@ -24,7 +28,10 @@ def test_encode_string():
     obj = codec.encode(src, lock_index='quux')
     assert obj == {'Flags': 1, 'Value': 'foo', 'LockIndex': 'quux'}
 
-    src = codec.ConsulString('bar', consul=codec.ConsulMeta(1, 2, 3, 4))
+    src = codec.ConsulString('bar', consul=bases.KeyMeta(1,
+                                                         create_index=2,
+                                                         lock_index=3,
+                                                         modify_index=4))
     obj = codec.encode(src)
     assert obj == {'Flags': 1, 'Value': 'bar',
                    'Key': 1, 'CreateIndex': 2,

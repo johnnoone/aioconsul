@@ -9,13 +9,16 @@ log = logging.getLogger(__name__)
 
 class Consul:
 
-    def __init__(self, api=None, version=None):
+    def __init__(self, api=None):
         self.api = str(api or 'http://127.0.0.1:8500').rstrip('/')
-        self.version = str(version or 'v1').strip('/')
+        self.version = 'v1'
+        self.acl = v1.ACLEndpoint(self)
         self.agent = v1.AgentEndpoint(self)
         self.catalog = v1.CatalogEndpoint(self)
+        self.event = v1.EventEndpoint(self)
+        self.health = v1.HealthEndpoint(self)
         self.kv = v1.KVEndpoint(self)
-        self.sessions = v1.SessionEndpoint(self)
+        self.session = v1.SessionEndpoint(self)
 
     @asyncio.coroutine
     def get(self, path, **kwargs):
@@ -40,20 +43,19 @@ class Consul:
     @asyncio.coroutine
     def request(self, method, path, **kwargs):
         url = '%s/%s/%s' % (self.api, self.version, path.lstrip('/'))
-        params = kwargs.setdefault('params', {})
-        if params.get('dc', -1) is None:
-            del params['dc']
-        if params.get('cas', -1) is None:
-            del params['cas']
-        if params.get('acquire', -1) is None:
-            del params['acquire']
-        if params.get('release', -1) is None:
-            del params['release']
-        if params.get('tag', -1) is None:
-            del params['tag']
-        for k, v in params.items():
-            if isinstance(v, bool):
-                params[k] = 'true' if v else 'false'
+
+        def parameters(data):
+
+            def prepare(value):
+                if value is True:
+                    return 'true'
+                if value is False:
+                    return 'false'
+                return value
+
+            return {k: prepare(v) for k, v in data.items() if v is not None}
+
+        kwargs['params'] = parameters(kwargs.setdefault('params', {}))
         response = yield from aiohttp.request(method, url, **kwargs)
         if response.status == 200:
             return response

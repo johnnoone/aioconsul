@@ -1,3 +1,24 @@
+from collections import namedtuple
+
+__all__ = ['ACL', 'Rule', 'Check', 'Event', 'Node', 'Service', 'NodeService']
+
+
+class ACL:
+
+    def __init__(self, id, *, name, type, rules,
+                 create_index=None, modify_index=None):
+        self.id = id
+        self.name = name
+        self.type = type
+        self.rules = rules or []
+        self.create_index = create_index
+        self.modify_index = modify_index
+
+    def __iter__(self):
+        return iter(self.rules)
+
+
+Rule = namedtuple('Rule', 'type value policy')
 
 
 class Check:
@@ -17,11 +38,36 @@ class Check:
         return '<Check(id=%r, name=%r)>' % (self.id, self.name)
 
 
+class Event(object):
+
+    def __init__(self, name, *, id=None, payload=None,
+                 node_filter=None, service_filter=None, tag_filter=None,
+                 version=None, l_time=None):
+        self.id = id
+        self.name = name
+        self.payload = payload
+        self.node_filter = node_filter
+        self.service_filter = service_filter
+        self.tag_filter = tag_filter
+        self.version = version
+        self.l_time = l_time
+
+    def __repr__(self):
+        return '<Event(id=%r, name=%r)>' % (self.id, self.name)
+
+
 class Node:
 
     def __init__(self, name, address):
         self.name = name
         self.address = address
+
+    def __iter__(self):
+        if hasattr(self, 'service'):
+            return iter([self.service])
+        if hasattr(self, 'services'):
+            return self.services.values()
+        raise TypeError('Does not have service nor services')
 
     def __str__(self):
         return str(self.name)
@@ -57,3 +103,15 @@ class NodeService(Service):
 
     def __repr__(self):
         return '<NodeService(id=%r)>' % self.id
+
+
+class KeyMeta:
+
+    def __init__(self, key, *, create_index, lock_index, modify_index):
+        self.key = key
+        self.create_index = create_index
+        self.lock_index = lock_index
+        self.modify_index = modify_index
+
+    def __repr__(self):
+        return '<KeyMeta(key=%r)>' % self.key

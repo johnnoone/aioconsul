@@ -1,10 +1,11 @@
 import json
 from base64 import b64decode
+from aioconsul.bases import KeyMeta
 from collections import namedtuple
 
 
 def decode(data, base64=True):
-    meta = ConsulMeta(
+    meta = KeyMeta(
         key=data.get('Key', None),
         create_index=data.get('CreateIndex', None),
         lock_index=data.get('LockIndex', None),
@@ -50,17 +51,6 @@ def encode(value, **params):
         response['Value'] = str(value)
 
     return response
-
-
-class ConsulMeta:
-    def __init__(self, key, create_index, lock_index, modify_index):
-        self.key = key
-        self.create_index = create_index
-        self.lock_index = lock_index
-        self.modify_index = modify_index
-
-    def __repr__(self):
-        return '<ConsulMeta(key=%r)>' % self.key
 
 
 class ConsulString(str):
