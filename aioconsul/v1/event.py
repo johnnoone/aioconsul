@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from aioconsul.bases import Event
+from aioconsul.exceptions import HTTPError, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class EventEndpoint:
         path = 'event/list'
         params = {'name': name}
         response = yield from self.client.get(path, params=params)
-        return [decode(data) for data in (yield from response.json())]
+        return {decode(data) for data in (yield from response.json())}
 
     @asyncio.coroutine
     def fire(self, event, data, *, dc=None,
@@ -23,7 +24,12 @@ class EventEndpoint:
         path = 'event/fire/%s' % getattr(event, 'name', event)
         params = {'dc': dc, 'node': node_filter,
                   'service': service_filter, 'tag': tag_filter}
-        response = yield from self.client.put(path, params=params, data=data)
+        try:
+            response = yield from self.client.put(path, params=params, data=data)
+        except HTTPError as error:
+            if error.status == 500:
+                raise ValidationError(str(error))
+            raise
         if response.status == 200:
             return decode((yield from response.json()))
 

@@ -52,6 +52,12 @@ class Event(object):
         self.version = version
         self.l_time = l_time
 
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
+
     def __repr__(self):
         return '<Event(id=%r, name=%r)>' % (self.id, self.name)
 
@@ -69,6 +75,12 @@ class Node:
             return self.services.values()
         raise TypeError('Does not have service nor services')
 
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
     def __str__(self):
         return str(self.name)
 
@@ -84,6 +96,9 @@ class Service:
 
     def __eq__(self, other):
         return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
 
     def __str__(self):
         return str(self.id)
@@ -112,6 +127,12 @@ class KeyMeta:
         self.create_index = create_index
         self.lock_index = lock_index
         self.modify_index = modify_index
+
+    def __eq__(self, other):
+        return self.key == other.key
+
+    def __hash__(self):
+        return hash(self.key)
 
     def __repr__(self):
         return '<KeyMeta(key=%r)>' % self.key
