@@ -5,6 +5,7 @@ Implements Consul_ with asyncio_ and aiohttp_.
 It is not ready for production yet.
 It works with Python >= 3.3.
 
+See the documentation_ for more informations.
 
 Installation
 ~~~~~~~~~~~~
@@ -218,3 +219,4 @@ Credits
 .. _aiohttp: http://aiohttp.readthedocs.org
 .. _asyncio: http://asyncio.org
 .. _`py.test`: http://pytest.org
+.. _documentation: http://aioconsul.readthedocs.org

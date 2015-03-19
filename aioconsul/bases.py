@@ -1,6 +1,7 @@
 from collections import namedtuple
 
-__all__ = ['ACL', 'Rule', 'Check', 'Event', 'Node', 'Service', 'NodeService']
+__all__ = ['ACL', 'Rule', 'Check', 'Event', 'Member',
+           'Node', 'Service', 'NodeService']
 
 
 class ACL:
@@ -24,7 +25,6 @@ class ACL:
         return hash(self.id)
 
     def __repr__(self):
-        """docstring for __repr__"""
         return '<ACL(id=%r, name=%r)>' % (self.id, self.name)
 
 Rule = namedtuple('Rule', 'type value policy')
@@ -69,6 +69,22 @@ class Event(object):
 
     def __repr__(self):
         return '<Event(id=%r, name=%r)>' % (self.id, self.name)
+
+
+class Member:
+    def __init__(self, name, address, port, **params):
+        self.name = name
+        self.address = name
+        self.port = port
+        for k, v in params.items():
+            setattr(self, k, v)
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __repr__(self):
+        return '<Member(name=%r, address=%r, port=%r)>' % (
+            self.name, self.address, self.port)
 
 
 class Node:
