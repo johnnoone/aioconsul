@@ -98,7 +98,7 @@ class Node(object):
 
 @pytest.fixture(scope="session", autouse=True)
 def leader(request):
-    config_file = os.path.join(HERE, 'consul-server-acl.json')
+    config_file = os.path.join(HERE, 'consul-server.json')
     node = Node('leader', config_file, True, True)
     node.start()
     request.addfinalizer(node.stop)

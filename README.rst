@@ -1,7 +1,7 @@
 AIO Consul
 ----------
 
-Implements consul with asyncio.
+Implements Consul_ with asyncio_.
 It is not ready for production yet.
 It works with python >= 3.3.
 
@@ -170,6 +170,28 @@ Health
 Testing
 ~~~~~~~
 
-Install consul, then run tests::
+Tests rely on Consul_ binary and `py.test`_.
+
+1. Install consul binary, it must be reachable in your ``$PATH``.
+2. Install test requirements::
+
+    pip install -r requirements-tests.txt
+
+3. Then run tests::
 
     py.test --cov-report html --cov aioconsul tests
+
+
+Credits
+-------
+
+- Consul_
+- aiohttp_
+- asyncio_
+- `py.test`_
+
+
+.. _Consul: http://consul.io
+.. _aiohttp: httphttp://aiohttp.readthedocs.org
+.. _asyncio: http://asyncio.org
+.. _`py.test`: http://pytest.org
