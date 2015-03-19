@@ -17,6 +17,16 @@ import sys
 import os
 import shlex
 
+
+# Get the project root dir, which is the parent dir of this
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Insert the project root dir as the first element in the PYTHONPATH.
+# This lets us ensure that the source package is imported, and that its
+# version is used.
+# sys.path.insert(0, os.path.join(project_root, 'aioconsul'))
+sys.path.insert(0, os.path.join(project_root, ))
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
