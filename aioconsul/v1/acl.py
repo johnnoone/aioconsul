@@ -76,7 +76,7 @@ class ACLEndpoint:
         """Create an ACL
 
         :param acl: the futur name of the ACL
-        :type acl: :py:class:`ACL` or str
+        :type acl: ACL
         :param type: the type of the :py:class:`ACL` (client or management)
         :type type: str
         :param rules: A set of rules to implement. These rules can
@@ -103,7 +103,7 @@ class ACLEndpoint:
         """Update an ACL
 
         :param acl: the ACL id to update
-        :type acl: :py:class:`ACL` or str
+        :type acl: ACL
         :param name: the new name of acl
         :type name: str
         :param type: the new type of the :py:class:`ACL` (client or management)
@@ -134,7 +134,7 @@ class ACLEndpoint:
         """Destroy an ACL
 
         :param acl: the ACL id to update
-        :type acl: :py:class:`ACL` or str
+        :type acl: ACL
         :returns: yes or no if it was destroyed
         :rtype: bool
         """
@@ -147,7 +147,7 @@ class ACLEndpoint:
         """Destroy an ACL
 
         :param acl: the ACL id to update
-        :type acl: :py:class:`ACL` or str
+        :type acl: ACL
         :returns: The ACL instance
         :rtype: :py:class:`ACL`
         """
@@ -163,7 +163,7 @@ class ACLEndpoint:
         """Clone an ACL
 
         :param acl: the ACL id to update
-        :type acl: :py:class:`ACL` or str
+        :type acl: ACL
         :returns: The id of the new ACL clone
         :rtype: str
         """

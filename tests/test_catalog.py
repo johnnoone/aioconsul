@@ -36,7 +36,7 @@ def test_catalog_services():
 def test_catalog_datacenters():
     client = Consul()
     datacenters = yield from client.catalog.datacenters()
-    assert datacenters == ['dc1']
+    assert datacenters == {'dc1'}
 
 
 @async_test

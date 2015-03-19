@@ -21,6 +21,8 @@ class KVEndpoint:
         Wraps requests to the specified dc.
 
         :param name: the datacenter name
+        :returns: a clone of this endpoint, attached to dc
+        :rtype: KVEndpoint
         """
         instance = copy.copy(self)
         instance.dc = name
@@ -28,7 +30,13 @@ class KVEndpoint:
 
     @asyncio.coroutine
     def get(self, path):
-        """Fetch one value"""
+        """Fetch one value
+
+        :param path: the key to check
+        :type path: str
+        :returns: The value corresponding to key.
+        :rtype: obj
+        """
         fullpath = '/kv/%s' % path
         params = {'dc': self.dc}
         try:
@@ -41,7 +49,13 @@ class KVEndpoint:
 
     @asyncio.coroutine
     def items(self, path):
-        """fetch values by prefix"""
+        """Fetch values by prefix
+
+        :param path: the prefix to check
+        :type path: str
+        :returns: a mapping of keys-values
+        :rtype: dict
+        """
         path = '/kv/%s' % path
         params = {'dc': self.dc,
                   'recurse': True}
@@ -51,7 +65,15 @@ class KVEndpoint:
 
     @asyncio.coroutine
     def keys(self, path, *, separator=None):
-        """list keys by prefix until separator"""
+        """Lists keys by prefix until separator
+
+        :param path: the prefix to check
+        :type path: str
+        :param separator: fetch all keys until this separator
+        :type separator: str
+        :returns: a set of keys
+        :rtype: set
+        """
         path = '/kv/%s' % path
         params = {'dc': self.dc,
                   'keys': True,
@@ -74,9 +96,20 @@ class KVEndpoint:
 
     @asyncio.coroutine
     def delete(self, path, *, recurse=False, cas=None):
+        """Deletes keys by path.
+        If recurse is True, it will delete every keys prefixed by path.
+
+        :param path: the path to delete
+        :type path: str
+        :param recurse: delete recursively
+        :type recurse: bool
+        :param cas: CAS to check before delete
+        :type cas: str
+        :returns: True
+        """
         path = '/kv/%s' % path
         params = {'cas': cas,
                   'dc': self.dc,
                   'recurse': recurse}
         response = yield from self.client.delete(path, params=params)
-        return (yield from response.text())
+        return response.status == 200

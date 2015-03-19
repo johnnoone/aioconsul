@@ -11,6 +11,7 @@ log = logging.getLogger(__name__)
 class CatalogEndpoint:
 
     class NotFound(ValueError):
+        """Raised when a node was not found."""
         pass
 
     def __init__(self, client):
@@ -18,21 +19,25 @@ class CatalogEndpoint:
 
     @asyncio.coroutine
     def register_node(self, node, *, dc=None):
+        """Registers a node"""
         response = yield from self.register(node, dc=dc)
         return response
 
     @asyncio.coroutine
     def register_check(self, node, *, check, dc=None):
+        """Registers a check"""
         response = yield from self.register(node, check=check, dc=dc)
         return response
 
     @asyncio.coroutine
     def register_service(self, node, *, service, dc=None):
+        """Registers a service"""
         response = yield from self.register(node, service=service, dc=dc)
         return response
 
     @asyncio.coroutine
     def register(self, node, *, dc=None, check=None, service=None):
+        """Registers to catalog"""
         path = 'catalog/register'
 
         def conf(data):
@@ -87,21 +92,25 @@ class CatalogEndpoint:
 
     @asyncio.coroutine
     def deregister_node(self, node, *, dc=None):
+        """Deregisters a node"""
         response = yield from self.deregister(node, dc=dc)
         return response
 
     @asyncio.coroutine
     def deregister_check(self, node, *, check, dc=None):
+        """Deregisters a check"""
         response = yield from self.deregister(node, dc=dc, check=check)
         return response
 
     @asyncio.coroutine
     def deregister_service(self, node, *, service, dc=None):
+        """Deregisters a service"""
         response = yield from self.deregister(node, dc=dc, service=service)
         return response
 
     @asyncio.coroutine
     def deregister(self, node, *, check=None, service=None, dc=None):
+        """Deregisters from catalog"""
         path = 'catalog/deregister'
 
         def conf(data):
@@ -144,11 +153,22 @@ class CatalogEndpoint:
 
     @asyncio.coroutine
     def datacenters(self):
+        """Lists datacenters
+
+        :returns: a set of datacenters
+        :rtype: set
+        """
         response = yield from self.client.get('/catalog/datacenters')
-        return (yield from response.json())
+        return set((yield from response.json()))
 
     @asyncio.coroutine
     def nodes(self, *, dc=None, service=None, tag=None):
+        """Lists nodes.
+
+        If service is given, node instances will have a special
+        attribute named `service`, which implements a NodeService
+        instance.
+        """
         if service is not None:
             path = '/catalog/service/%s' % extract_id(service)
             params = {'dc': dc, 'tag': tag}
@@ -180,6 +200,11 @@ class CatalogEndpoint:
 
     @asyncio.coroutine
     def get(self, name, *, dc=None):
+        """Get a node. Raises a NotFound if it's not found.
+
+        The instance will have a special attributes named `services`,
+        which implements a list of services attached to the node.
+        """
         path = '/catalog/node/%s' % name
         params = {'dc': dc}
         response = yield from self.client.get(path, params=params)
@@ -198,6 +223,11 @@ class CatalogEndpoint:
 
     @asyncio.coroutine
     def services(self, *, dc=None):
+        """Lists services.
+
+        :returns: a mapping of services - known tags
+        :rtype: dict
+        """
         params = {'dc': dc}
         response = yield from self.client.get('/catalog/services',
                                               params=params)
