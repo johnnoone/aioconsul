@@ -1,7 +1,6 @@
-import asyncio
 import pytest
 from aioconsul import Consul
-from util import async_test
+from conftest import async_test
 
 
 @async_test
@@ -43,11 +42,10 @@ def test_catalog_datacenters():
 @async_test
 def test_catalog_register_service():
     client = Consul()
-    datacenters = yield from client.catalog.datacenters()
     node = yield from client.catalog.get('my-local-node')
     node = {'name': 'my-local-node',
             'address': node.address}
-    service={'name': 'foo'}
+    service = {'name': 'foo'}
 
     resp = yield from client.catalog.register_service(node, service=service)
     assert resp
@@ -65,14 +63,13 @@ def test_catalog_register_service():
 @async_test
 def test_catalog_register_check():
     client = Consul()
-    datacenters = yield from client.catalog.datacenters()
     node = yield from client.catalog.get('my-local-node')
     node = {'name': 'my-local-node',
             'address': node.address}
     check = {'name': 'baz',
              'state': 'passing',
              'service_id': 'bar'}
-    service={'name': 'bar'}
+    service = {'name': 'bar'}
 
     resp = yield from client.catalog.register(node, check=check, service=service)
     assert resp

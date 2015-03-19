@@ -1,7 +1,7 @@
 import asyncio
 import pytest
 from aioconsul import Consul, ValidationError
-from util import async_test
+from conftest import async_test
 
 
 @async_test

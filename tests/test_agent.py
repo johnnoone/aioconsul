@@ -1,5 +1,5 @@
 from aioconsul import Consul
-from util import async_test
+from conftest import async_test
 
 
 @async_test
