@@ -1,4 +1,4 @@
 from .client import Consul
-from .exceptions import ValidationError
+from .exceptions import ACLPermissionDenied, ValidationError
 
-__all__ = ['Consul', 'ValidationError']
+__all__ = ['ACLPermissionDenied', 'Consul', 'ValidationError']

@@ -29,7 +29,6 @@ def pre_clean():
     # remove checks
     checks = yield from client.agent.checks.items()
     for check in checks:
-        print(check)
         yield from client.agent.checks.delete(check)
 
     # remove services
@@ -68,7 +67,7 @@ class Node(object):
         env = os.environ.copy()
         env.setdefault('GOMAXPROCS', '2')
         proc = Popen(['consul', 'agent', '-config-file=%s' % self.config_file],
-                     env=env, shell=False)
+                     stdout=PIPE, stderr=PIPE, env=env, shell=False)
         self._proc = proc
         print('Starting %s [%s]' % (self.name, proc.pid))
         for i in range(60):

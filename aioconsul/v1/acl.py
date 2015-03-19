@@ -31,7 +31,7 @@ class SupportedClient(RequestWrapper):
             self.obj.supported = True
             return response
         except HTTPError as error:
-            if error.status == 401:
+            if error.status in (401, 403):
                 if self.obj.supported is None:
                     self.obj.supported = False
                 raise ACLSupportDisabled(str(error))
@@ -77,8 +77,7 @@ class ACLEndpoint:
             'Rules': encode_rules(rules)
         }
         response = yield from self.client.put(path, data=json.dumps(data))
-        acl_id = (yield from response.json())['ID']
-        return (yield from self.get(acl_id))
+        return (yield from response.json())['ID']
 
     @asyncio.coroutine
     def update(self, acl, *, name=None, type=None, rules=None):
@@ -105,7 +104,7 @@ class ACLEndpoint:
     def get(self, acl):
         path = 'acl/info/%s' % extract_id(acl)
         response = yield from self.client.get(path)
-        for data in (yield from response.json()):
+        for data in (yield from response.json()) or []:
             return decode(data)
         else:
             raise self.NotFound('ACL %s was not found' % acl)
@@ -122,6 +121,8 @@ class ACLEndpoint:
         response = yield from self.client.get(path)
         return [decode(data) for data in (yield from response.json())]
 
+    delete = destroy
+
 
 def decode(data):
     return ACL(id=data.get('ID'),
@@ -133,6 +134,8 @@ def decode(data):
 
 
 def decode_rules(data):
+    if data and isinstance(data, str):
+        data = json.loads(data)
     data, rules = data or {}, []
     for type, members in data.items():
         for value, info in members.items():
@@ -143,5 +146,8 @@ def decode_rules(data):
 def encode_rules(rules):
     data, rules = defaultdict(dict), rules or []
     for type, value, policy in rules:
+        policy = {'allow': 'write',
+                  True: 'write',
+                  False: 'deny'}.get(policy, policy)
         data[type][value] = {'policy': policy}
-    return data
+    return json.dumps(data)

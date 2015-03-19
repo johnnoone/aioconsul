@@ -8,7 +8,6 @@ def test_health():
     client = Consul()
 
     for check in (yield from client.health.node('my-local-node')):
-        print(check.__dict__)
         assert check.status == 'passing', check.__dict__
 
     # create a bunch of services for the continuing tests

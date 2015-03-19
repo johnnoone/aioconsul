@@ -1,9 +1,9 @@
 AIO Consul
 ----------
 
-Implements Consul_ with asyncio_.
+Implements Consul_ with asyncio_ and aiohttp_.
 It is not ready for production yet.
-It works with python >= 3.3.
+It works with Python >= 3.3.
 
 
 Installation
@@ -167,6 +167,29 @@ Health
         assert check.status == 'passing'
 
 
+ACL
+~~~
+
+::
+
+    from aioconsul import Consul, ACLPermissionDenied
+    client = Consul(token=master_token)
+
+    # create a token
+    token = (yield from client.acl.create('my-acl', rules=[
+        ('key', '', 'read'),
+        ('key', 'foo/', 'deny'),
+    ]))
+
+    # access to kv with the fresh token
+    node = Consul(token=token)
+    yield from node.kv.get('foo')
+    with pytest.raises(ACLPermissionDenied):
+        yield from node.kv.set('foo', 'baz')
+    with pytest.raises(node.kv.NotFound):
+        yield from node.kv.get('foo/bar')
+
+
 Testing
 ~~~~~~~
 
@@ -192,6 +215,6 @@ Credits
 
 
 .. _Consul: http://consul.io
-.. _aiohttp: httphttp://aiohttp.readthedocs.org
+.. _aiohttp: http://aiohttp.readthedocs.org
 .. _asyncio: http://asyncio.org
 .. _`py.test`: http://pytest.org

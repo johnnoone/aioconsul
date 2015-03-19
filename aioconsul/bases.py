@@ -17,6 +17,15 @@ class ACL:
     def __iter__(self):
         return iter(self.rules)
 
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __repr__(self):
+        """docstring for __repr__"""
+        return '<ACL(id=%r, name=%r)>' % (self.id, self.name)
 
 Rule = namedtuple('Rule', 'type value policy')
 

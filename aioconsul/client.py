@@ -5,9 +5,9 @@ from .request import RequestHandler, RequestWrapper
 
 class Consul(RequestWrapper):
 
-    def __init__(self, api=None):
+    def __init__(self, api=None, *, token=None):
         api = str(api or 'http://127.0.0.1:8500').rstrip('/')
-        RequestWrapper.__init__(self, RequestHandler(api, 'v1'))
+        RequestWrapper.__init__(self, RequestHandler(api, 'v1', token=token))
 
         self.acl = v1.ACLEndpoint(self.req_handler)
         self.agent = v1.AgentEndpoint(self.req_handler)

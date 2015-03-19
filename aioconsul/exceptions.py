@@ -9,15 +9,21 @@ class ClientError(Exception):
 
 
 class HTTPError(ClientError):
+
     def __init__(self, status, msg, url, data):
         self.status = status
         self.url = url
         self.data = data
-        Exception.__init__(self, msg)
+        ClientError.__init__(self, msg)
 
 
-class UnknownLeader(ClientError):
+class UnknownLeader(HTTPError):
     """Raised when leader is not known (for staleness of data)."""
+    pass
+
+
+class ACLPermissionDenied(HTTPError):
+    """docstring for ACLPermissionDenied"""
     pass
 
 

@@ -40,7 +40,6 @@ class HealthEndpoint:
         response = yield from self.client.get(path, params=params)
         nodes = set()
         for data in (yield from response.json()):
-            print(data)
             node = Node(name=data['Node']['Node'],
                         address=data['Node']['Address'])
             node.service = NodeService(id=data['Service']['ID'],

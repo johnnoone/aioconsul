@@ -1,7 +1,7 @@
 import aiohttp
 import asyncio
 import logging
-from .exceptions import HTTPError, UnknownLeader
+from .exceptions import ACLPermissionDenied, HTTPError, UnknownLeader
 
 
 log = logging.getLogger(__name__)
@@ -9,9 +9,10 @@ log = logging.getLogger(__name__)
 
 class RequestHandler:
 
-    def __init__(self, api, version=None):
+    def __init__(self, api, version=None, *, token=None):
         self.api = api
         self.version = version or 'v1'
+        self.token = token
 
     @asyncio.coroutine
     def get(self, path, **kwargs):
@@ -48,17 +49,24 @@ class RequestHandler:
 
             return {k: prepare(v) for k, v in data.items() if v is not None}
 
-        kwargs['params'] = parameters(kwargs.setdefault('params', {}))
+        params = kwargs.get('params', {})
+        params.setdefault('token', self.token)
+        kwargs['params'] = parameters(params)
         response = yield from aiohttp.request(method, url, **kwargs)
         if response.status == 200:
             return response
 
         headers = response.headers
         body = yield from response.text()
-        if headers.get('X-Consul-KnownLeader', None) == 'false':
-            raise UnknownLeader(body)
 
         log.warn('%s %s %s %s %s', response.status, method, url, body, kwargs)
+
+        if headers.get('X-Consul-KnownLeader', None) == 'false':
+            raise UnknownLeader(response.status, body, url, data=kwargs)
+
+        if response.status == 403:
+            raise ACLPermissionDenied(response.status, body, url, data=kwargs)
+
         raise HTTPError(response.status, body, url, data=kwargs)
 
 
