@@ -21,6 +21,7 @@ def pre_clean():
     # remove checks
     checks = yield from client.agent.checks.items()
     for check in checks:
+        print(check)
         yield from client.agent.checks.delete(check)
 
     # remove services

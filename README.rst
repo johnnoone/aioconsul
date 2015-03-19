@@ -97,6 +97,24 @@ This library can consult catalog::
     nodes = yield from client.catalog.nodes(service='my-service')
     print(nodes)
 
+And register checks, services and nodes::
+
+    from aioconsul import Consul
+    client = Consul()
+
+    node = {'name': 'my-local-node',
+            'address': '127.0.0.1'}
+    check = {'name': 'baz',
+             'state': 'passing',
+             'service_id': 'bar'}
+    service={'name': 'bar'}
+
+    resp = yield from client.catalog.register(node, check=check, service=service)
+    assert resp
+
+    resp = yield from client.catalog.deregister(node, check=check, service=service)
+    assert resp
+
 
 Events
 ~~~~~~
@@ -112,6 +130,41 @@ Events
     # list all events
     for event in (yield from client.event.items()):
         print(event.name)
+
+
+Health
+~~~~~~
+
+::
+
+    from aioconsul import Consul
+    client = Consul()
+
+    # checks for a node
+    for check in (yield from client.health.node('my-local-node')):
+        assert check.status == 'passing'
+
+    # health of a node
+    for check in (yield from client.health.node('my-local-node')):
+        assert check.status == 'passing'
+
+    # health of a check id
+    for check in (yield from client.health.checks('serfHealth')):
+        assert check.status == 'passing'
+
+    # health of a check id
+    for check in (yield from client.health.checks('serfHealth')):
+        assert check.status == 'passing'
+
+    # health of a service
+    for node in (yield from client.health.service('foo', state='any')):
+        for check in node.checks:
+            if check.id == 'service:foo':
+                assert check.status == 'passing'
+
+    # passing checks
+    for check in (yield from client.health.state('passing')):
+        assert check.status == 'passing'
 
 
 Testing

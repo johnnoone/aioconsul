@@ -1,6 +1,7 @@
 import asyncio
+import json
 import logging
-from aioconsul.bases import Node, NodeService
+from aioconsul.bases import Check, Node, NodeService, Service
 from aioconsul.exceptions import ValidationError
 from aioconsul.util import extract_id
 
@@ -16,12 +17,130 @@ class CatalogEndpoint:
         self.client = client
 
     @asyncio.coroutine
-    def register(self, node, address, *, dc=None, check=None, service=None):
-        raise NotImplementedError()
+    def register_node(self, node, *, dc=None):
+        response = yield from self.register(node, dc=dc)
+        return response
 
     @asyncio.coroutine
-    def deregister(self):
-        raise NotImplementedError()
+    def register_check(self, node, *, check, dc=None):
+        response = yield from self.register(node, check=check, dc=dc)
+        return response
+
+    @asyncio.coroutine
+    def register_service(self, node, *, service, dc=None):
+        response = yield from self.register(node, service=service, dc=dc)
+        return response
+
+    @asyncio.coroutine
+    def register(self, node, *, dc=None, check=None, service=None):
+        path = 'catalog/register'
+
+        def conf(data):
+            return {k: v for k, v in data.items() if v is not None}
+
+        if isinstance(node, dict):
+            node = Node(name=node.get('name'),
+                        address=node.get('address'))
+
+        if isinstance(check, dict):
+            check = Check(id=check.get('id'),
+                          name=check.get('name'),
+                          status=check.get('status'),
+                          notes=check.get('notes'),
+                          output=check.get('output'),
+                          service_id=check.get('service_id'),
+                          service_name=check.get('service_name'),
+                          node=check.get('node'))
+
+        if isinstance(service, dict):
+            service = NodeService(id=service.get('id'),
+                                  name=service.get('name'),
+                                  address=service.get('address'),
+                                  port=service.get('port'),
+                                  tags=service.get('tags'))
+
+        data = conf({
+            'Datacenter': dc,
+            'Node': node.name,
+            'Address': node.address
+        })
+        if service:
+            data['Service'] = conf({
+                'ID': service.id,
+                'Service': service.name,
+                'Address': service.address,
+                'Port': service.port,
+                'Tags': service.tags
+            })
+
+        if check:
+            data['Check'] = conf({
+                'CheckID': check.id,
+                'Name': check.name,
+                'Notes': check.notes,
+                'Status': check.status,
+                'Node': check.node or node.name,
+                'ServiceID': check.service_id
+            })
+        response = yield from self.client.put(path, data=json.dumps(data))
+        return response.status == 200
+
+    @asyncio.coroutine
+    def deregister_node(self, node, *, dc=None):
+        response = yield from self.deregister(node, dc=dc)
+        return response
+
+    @asyncio.coroutine
+    def deregister_check(self, node, *, check, dc=None):
+        response = yield from self.deregister(node, dc=dc, check=check)
+        return response
+
+    @asyncio.coroutine
+    def deregister_service(self, node, *, service, dc=None):
+        response = yield from self.deregister(node, dc=dc, service=service)
+        return response
+
+    @asyncio.coroutine
+    def deregister(self, node, *, check=None, service=None, dc=None):
+        path = 'catalog/deregister'
+
+        def conf(data):
+            return {k: v for k, v in data.items() if v is not None}
+
+        if isinstance(node, dict):
+            node = node.get('name')
+        elif isinstance(node, Node):
+            node = node.name
+
+        if isinstance(check, dict):
+            check_id = check.get('id') or check.get('name')
+        elif isinstance(check, Check):
+            check_id = check.id or check.name
+        else:
+            check_id = check
+
+        if isinstance(service, dict):
+            service_id = service.get('id') or service.get('name')
+        elif isinstance(service, Service):
+            service_id = service.id or service.name
+        else:
+            service_id = service
+
+        data = conf({
+            'Datacenter': dc,
+            'Node': node,
+            'CheckID': check_id,
+            'ServiceID': service_id
+        })
+
+        if service and ('ServiceID' not in data):
+            raise ValidationError('Unable to define service')
+
+        if check and ('CheckID' not in data):
+            raise ValidationError('Unable to define check')
+
+        response = yield from self.client.put(path, data=json.dumps(data))
+        return response.status == 200
 
     @asyncio.coroutine
     def datacenters(self):

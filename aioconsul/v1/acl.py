@@ -106,7 +106,6 @@ class ACLEndpoint:
         path = 'acl/info/%s' % extract_id(acl)
         response = yield from self.client.get(path)
         for data in (yield from response.json()):
-            print(data)
             return decode(data)
         else:
             raise self.NotFound('ACL %s was not found' % acl)
