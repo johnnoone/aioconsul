@@ -239,7 +239,8 @@ def decode(data, base64=True):
     key = Key(name=data.get('Key'),
               create_index=data.get('CreateIndex'),
               lock_index=data.get('LockIndex'),
-              modify_index=data.get('ModifyIndex'))
+              modify_index=data.get('ModifyIndex'),
+              session=data.get('Session'))
     value = data['Value']
     if base64:
         value = b64decode(value).decode('utf-8')

@@ -2,6 +2,7 @@ import asyncio
 import logging
 from aioconsul.bases import Event
 from aioconsul.exceptions import HTTPError, ValidationError
+from aioconsul.util import extract_name
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class EventEndpoint:
         Returns:
             Event: An Event instance
         """
-        path = 'event/fire/%s' % getattr(event, 'name', event)
+        path = 'event/fire/%s' % extract_name(event)
         params = {'dc': dc, 'node': node_filter,
                   'service': service_filter, 'tag': tag_filter}
         try:

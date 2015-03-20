@@ -261,13 +261,15 @@ class Key:
     """
     Attributes:
         name (str): key
+        session (str): session that acquired this key
         create_index (int): create_index
         lock_index (int): lock_index
         modify_index (int): modify_index
     """
-    def __init__(self, name, *, create_index=None,
+    def __init__(self, name, *, session=None, create_index=None,
                  modify_index=None, lock_index=None):
         self.name = name
+        self.session = session
         self.create_index = create_index
         self.modify_index = modify_index
         self.lock_index = lock_index

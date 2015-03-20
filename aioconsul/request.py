@@ -8,36 +8,54 @@ log = logging.getLogger(__name__)
 
 
 class RequestHandler:
-
-    def __init__(self, api, version=None, *, token=None, consistency=None):
-        self.api = api
-        self.version = version or 'v1'
+    """
+    Attributes:
+        host (str): host api
+        version (str): api version
+        token (str): Token ID
+        consistency (str):
+    """
+    def __init__(self, host, version, *, token=None, consistency=None):
+        self.host = host
+        self.version = version
         self.token = token
         self.consistency = consistency
 
     @asyncio.coroutine
     def get(self, path, **kwargs):
+        """
+        Short-cut towards :meth:`request`
+        """
         response = yield from self.request('GET', path, **kwargs)
         return response
 
     @asyncio.coroutine
     def post(self, path, **kwargs):
+        """
+        Short-cut towards :meth:`request`
+        """
         response = yield from self.request('POST', path, **kwargs)
         return response
 
     @asyncio.coroutine
     def put(self, path, **kwargs):
+        """
+        Short-cut towards :meth:`request`
+        """
         response = yield from self.request('PUT', path, **kwargs)
         return response
 
     @asyncio.coroutine
     def delete(self, path, **kwargs):
+        """
+        Short-cut towards :meth:`request`
+        """
         response = yield from self.request('DELETE', path, **kwargs)
         return response
 
     @asyncio.coroutine
     def request(self, method, path, **kwargs):
-        url = '%s/%s/%s' % (self.api, self.version, path.lstrip('/'))
+        url = '%s/%s/%s' % (self.host, self.version, path.lstrip('/'))
 
         def parameters(data):
 
@@ -52,9 +70,9 @@ class RequestHandler:
 
         params = kwargs.get('params', {}).copy()
         params.setdefault('token', self.token)
-        if self.consistency == 'consistent':
+        if self.consistency == 'consistent' and 'stale' not in params:
             params.setdefault('consistent', True)
-        elif self.consistency == 'stale':
+        if self.consistency == 'stale' and 'consistent' not in params:
             params.setdefault('stale', True)
         kwargs['params'] = parameters(params)
         response = yield from aiohttp.request(method, url, **kwargs)
@@ -83,21 +101,33 @@ class RequestWrapper:
 
     @asyncio.coroutine
     def get(self, path, **kwargs):
+        """
+        Short-cut towards :meth:`request`
+        """
         response = yield from self.request('get', path, **kwargs)
         return response
 
     @asyncio.coroutine
     def post(self, path, **kwargs):
+        """
+        Short-cut towards :meth:`request`
+        """
         response = yield from self.request('post', path, **kwargs)
         return response
 
     @asyncio.coroutine
     def put(self, path, **kwargs):
+        """
+        Short-cut towards :meth:`request`
+        """
         response = yield from self.request('put', path, **kwargs)
         return response
 
     @asyncio.coroutine
     def delete(self, path, **kwargs):
+        """
+        Short-cut towards :meth:`request`
+        """
         response = yield from self.request('delete', path, **kwargs)
         return response
 

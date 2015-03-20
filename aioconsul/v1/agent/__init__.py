@@ -85,7 +85,7 @@ class AgentEndpoint:
         Returns:
             bool: Action status
         """
-        path = '/agent/force-leave/%s' % getattr(member, 'name', member)
+        path = '/agent/force-leave/%s' % extract_name(member)
         response = yield from self.client.get(path)
         return response.status == 200
 

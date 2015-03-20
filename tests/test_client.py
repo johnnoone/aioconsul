@@ -4,7 +4,7 @@ from aioconsul import Consul
 
 def test_client():
     client = Consul('http://foo')
-    assert client.api == 'http://foo'
+    assert client.host == 'http://foo'
     assert client.version == 'v1'
 
 

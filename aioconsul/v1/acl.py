@@ -5,7 +5,7 @@ from collections import defaultdict
 from aioconsul.bases import Token, Rule
 from aioconsul.exceptions import ACLSupportDisabled, HTTPError
 from aioconsul.request import RequestWrapper
-from aioconsul.util import extract_id
+from aioconsul.util import extract_id, extract_name
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ class ACLEndpoint:
             str: token id
         """
         path = 'acl/create'
-        name = getattr(token, 'name', token)
+        name = extract_name(token)
         type = type or 'client'
         data = {
             'Name': name,

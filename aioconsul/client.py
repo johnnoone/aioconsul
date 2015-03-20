@@ -11,14 +11,19 @@ class Consul(RequestWrapper):
     Since no policy will suit all clients' needs, these consistency modes
     allow the user to have the ultimate say in how to balance the trade-offs
     inherent in a distributed system.
+
+    Attributes:
+        host (str): host api
+        version (str): api version
+        token (str): Token ID
+        consistency (str):
     """
 
-    def __init__(self, api=None, *, token=None, consistency=None):
-        api = str(api or 'http://127.0.0.1:8500').rstrip('/')
+    def __init__(self, host=None, *, token=None, consistency=None):
+        host = str(host or 'http://127.0.0.1:8500').rstrip('/')
         if isinstance(token, Token):
             token = token.id
-        handler = RequestHandler(api, 'v1',
-                                 token=token,
+        handler = RequestHandler(host, 'v1', token=token,
                                  consistency=consistency)
         RequestWrapper.__init__(self, handler)
 
@@ -31,8 +36,8 @@ class Consul(RequestWrapper):
         self.session = v1.SessionEndpoint(self.req_handler)
 
     @property
-    def api(self):
-        return self.req_handler.api
+    def host(self):
+        return self.req_handler.host
 
     @property
     def version(self):
@@ -48,5 +53,19 @@ class Consul(RequestWrapper):
 
     @asyncio.coroutine
     def request(self, method, path, **kwargs):
+        """
+        Makes single http request.
+
+        Requested url will be in the form of ``{host}/{version}/{path}``
+
+        Parameters:
+            method (str): http method
+            path (str): path after version
+
+        Keyword Arguments:
+            params (dict): get params
+            data (str): body of the request
+            headers (dict): custom headers
+        """
         response = yield from self.req_handler.request(method, path, **kwargs)
         return response
