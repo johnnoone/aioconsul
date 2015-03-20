@@ -18,8 +18,8 @@ class AgentEndpoint:
     def members(self):
         """Returns a set of members.
 
-        :returns: a set of members
-        :rtype: set
+        Returns:
+            set: a set of members
         """
         response = yield from self.client.get('/agent/members')
         return [decode_member(item) for item in (yield from response.json())]
@@ -28,8 +28,9 @@ class AgentEndpoint:
     def me(self):
         """Returns info about current agent.
 
-        :returns: information mapping
-        :rtype: dict
+        Returns:
+            dict: information mapping
+
         """
         response = yield from self.client.get('/agent/self')
         data = yield from response.json()
@@ -41,12 +42,12 @@ class AgentEndpoint:
     def maintenance(self, enable, reason=None):
         """Switch agent maintenance mode.
 
-        :param enable: Should we put this agent in maintenance mode?
-        :type enable: bool
-        :param reason: An opaque str about the maintenance.
-        :type reason: str
-        :returns: Agent status
-        :rtype: bool
+        Parameters:
+            enable (bool): Should we put this agent in maintenance mode?
+            reason (str): An opaque str about the maintenance.
+
+        Returns:
+            bool: Agent status
         """
         params = {
             'enable': enable,
@@ -60,12 +61,12 @@ class AgentEndpoint:
     def join(self, address, *, wan=None):
         """Asks the agent to join a cluster.
 
-        :param address: Address to join
-        :type address: str
-        :param wan: Use wan?
-        :type wan: str
-        :returns: Agent status
-        :rtype: bool
+        Parameters:
+            address (str): Address to join
+            wan (str): Use wan?
+
+        Returns:
+            bool: Agent status
         """
         path = '/agent/join/%s' % str(address).lstrip('/')
         params = {}
@@ -78,10 +79,11 @@ class AgentEndpoint:
     def force_leave(self, member):
         """Asks a member to leaver the cluster.
 
-        :param member: The member to remove from cluster.
-        :type member: Member or str
-        :returns: Action status
-        :rtype: bool
+        Parameters:
+            member (str): The member to remove from cluster.
+
+        Returns:
+            bool: Action status
         """
         path = '/agent/force-leave/%s' % getattr(member, 'name', member)
         response = yield from self.client.get(path)

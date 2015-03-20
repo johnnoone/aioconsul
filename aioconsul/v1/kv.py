@@ -20,9 +20,12 @@ class KVEndpoint:
         """
         Wraps requests to the specified dc.
 
-        :param name: the datacenter name
-        :returns: a clone of this endpoint, attached to dc
-        :rtype: KVEndpoint
+        Parameters:
+            name (str): the datacenter name
+
+        Returns:
+            KVEndpoint: a clone of this endpoint, attached to dc
+
         """
         instance = copy.copy(self)
         instance.dc = name
@@ -32,10 +35,12 @@ class KVEndpoint:
     def get(self, path):
         """Fetch one value
 
-        :param path: the key to check
-        :type path: str
-        :returns: The value corresponding to key.
-        :rtype: obj
+        Parameters:
+            path (str): the key to check
+
+        Returns:
+            objects: The value corresponding to key.
+
         """
         fullpath = '/kv/%s' % path
         params = {'dc': self.dc}
@@ -51,10 +56,11 @@ class KVEndpoint:
     def items(self, path):
         """Fetch values by prefix
 
-        :param path: the prefix to check
-        :type path: str
-        :returns: a mapping of keys-values
-        :rtype: dict
+        Parameters:
+            path (str): the prefix to check
+
+        Returns:
+            dict: Mapping of keys - objects
         """
         path = '/kv/%s' % path
         params = {'dc': self.dc,
@@ -67,12 +73,12 @@ class KVEndpoint:
     def keys(self, path, *, separator=None):
         """Lists keys by prefix until separator
 
-        :param path: the prefix to check
-        :type path: str
-        :param separator: fetch all keys until this separator
-        :type separator: str
-        :returns: a set of keys
-        :rtype: set
+        Parameters:
+            path (str): the prefix to check
+            separator (str): fetch all keys until this separator
+
+        Returns:
+            set: a set of keys
         """
         path = '/kv/%s' % path
         params = {'dc': self.dc,
@@ -99,13 +105,13 @@ class KVEndpoint:
         """Deletes keys by path.
         If recurse is True, it will delete every keys prefixed by path.
 
-        :param path: the path to delete
-        :type path: str
-        :param recurse: delete recursively
-        :type recurse: bool
-        :param cas: CAS to check before delete
-        :type cas: str
-        :returns: True
+        Parameters:
+            path (str): the path to delete
+            recurse (bool): delete recursively
+            cas (str): CAS to check before delete
+
+        Returns:
+            bool: True
         """
         path = '/kv/%s' % path
         params = {'cas': cas,

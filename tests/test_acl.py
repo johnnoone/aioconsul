@@ -57,7 +57,7 @@ def test_leader(leader):
             assert acl.id == token
             break
     else:
-        assert False, 'ACL not found'
+        assert False, 'Token not found'
 
     acl = yield from client.acl.get(token)
     assert len(acl.rules) == 2

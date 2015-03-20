@@ -155,8 +155,8 @@ class CatalogEndpoint:
     def datacenters(self):
         """Lists datacenters
 
-        :returns: a set of datacenters
-        :rtype: set
+        Returns:
+            set: a set of datacenters
         """
         response = yield from self.client.get('/catalog/datacenters')
         return set((yield from response.json()))
@@ -225,8 +225,8 @@ class CatalogEndpoint:
     def services(self, *, dc=None):
         """Lists services.
 
-        :returns: a mapping of services - known tags
-        :rtype: dict
+        Returns:
+            dict: a mapping of services - known tags
         """
         params = {'dc': dc}
         response = yield from self.client.get('/catalog/services',

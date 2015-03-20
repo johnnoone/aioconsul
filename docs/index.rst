@@ -48,16 +48,26 @@ And display the catalog::
     for node in (yield from client.catalog.nodes()):
         print(node.name, node.address)
 
-API
----
+
+In the pit
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   client
+   objects
+
+
+Endpoints
+---------
 
 .. toctree::
    :glob:
-   :maxdepth: 2
+   :maxdepth: 1
 
-   api/*
+   endpoints/*
 
-See also :ref:`objects`.
 
 Indices and tables
 ------------------

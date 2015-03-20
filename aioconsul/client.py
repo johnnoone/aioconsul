@@ -1,5 +1,6 @@
 import asyncio
 from . import v1
+from .bases import Token
 from .request import RequestHandler, RequestWrapper
 
 
@@ -7,6 +8,8 @@ class Consul(RequestWrapper):
 
     def __init__(self, api=None, *, token=None):
         api = str(api or 'http://127.0.0.1:8500').rstrip('/')
+        if isinstance(token, Token):
+            token = token.id
         RequestWrapper.__init__(self, RequestHandler(api, 'v1', token=token))
 
         self.acl = v1.ACLEndpoint(self.req_handler)

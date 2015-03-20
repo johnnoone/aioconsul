@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from collections import defaultdict
-from aioconsul.bases import ACL, Rule
+from aioconsul.bases import Token, Rule
 from aioconsul.exceptions import ACLSupportDisabled, HTTPError
 from aioconsul.request import RequestWrapper
 from aioconsul.util import extract_id
@@ -14,7 +14,7 @@ class SupportedClient(RequestWrapper):
     """
     Supported Client
 
-    It can handle ACL request with barrier. See :py:class:`ACLEndpoint`
+    It can handle ACL request with barrier. See :py:class:`ACLEndpoint`.
     """
 
     def __init__(self, client, obj):
@@ -42,12 +42,13 @@ class ACLEndpoint:
     """
     ACL Endpoint
 
-    :ivar supported: Used as a barrier, it will be defined at the first
-                     request. Set it to ``None`` for resetting.
+    Attributes:
+        supported (bool): Used as a barrier, it will be defined at the
+                          first request. Set it to ``None`` for resetting.
     """
 
     class NotFound(ValueError):
-        """Raises when an ACL was not found."""
+        """Raises when a token was not found."""
         pass
 
     def __init__(self, client, supported=None):
@@ -58,8 +59,8 @@ class ACLEndpoint:
     def is_supported(self):
         """Tells if ACL is supported or not.
 
-        :returns: yes or no
-        :rtype: bool
+        Returns:
+            bool: yes or no
         """
         if self.supported is None:
             try:
@@ -72,23 +73,28 @@ class ACLEndpoint:
         return self.supported
 
     @asyncio.coroutine
-    def create(self, acl, *, type=None, rules=None):
-        """Create an ACL
+    def create(self, token, *, type=None, rules=None):
+        """Create a token.
 
-        :param acl: the futur name of the ACL
-        :type acl: ACL
-        :param type: the type of the :py:class:`ACL` (client or management)
-        :type type: str
-        :param rules: A set of rules to implement. These rules can
-                      be a list of :py:class:`Rule` instances,
-                      or 3 length tuples.
-        :type rules: set
-        :returns: the new acl id that can be used as a token for
-                  :py:class:`Consul` instances.
-        :rtype: str
+        It is used to make a new token.
+        A token has a name, a type, and a set of ACL rules.
+
+        The result is a token id that can be used as a token into
+        :py:class:`Consul` instances
+
+        Parameters:
+            token (Token): the futur name of the Token
+            type (str): the type of the :py:class:`Token` (client or
+                        management)
+            rules (list): A set of rules to implement. These rules can be a
+                          list of :py:class:`Rule` instances, or 3 length
+                          tuples.
+
+        Returns:
+            str: token id
         """
         path = 'acl/create'
-        name = getattr(acl, 'name', acl)
+        name = getattr(token, 'name', token)
         type = type or 'client'
         data = {
             'Name': name,
@@ -99,26 +105,27 @@ class ACLEndpoint:
         return (yield from response.json())['ID']
 
     @asyncio.coroutine
-    def update(self, acl, *, name=None, type=None, rules=None):
-        """Update an ACL
+    def update(self, token, *, name=None, type=None, rules=None):
+        """Update a token
 
-        :param acl: the ACL id to update
-        :type acl: ACL
-        :param name: the new name of acl
-        :type name: str
-        :param type: the new type of the :py:class:`ACL` (client or management)
-        :type type: str
-        :param rules: A set of new rules to implement. These rules can
-                      be a list of :py:class:`Rule` instances,
-                      or 3 length tuples.
-        :type rules: set
-        :returns: the acl id that can be used as a token for
-                  :py:class:`Consul` instances.
-        :rtype: str
+        The result is a token id that can be used as a token into
+        :py:class:`Consul` instances
+
+        Parameters:
+            token (Token): the Token id to update
+            name (str): the new name of token
+            type (str): the new type (client or management)
+            rules (list): A set of new rules to implement. These rules can
+                          be a list of :py:class:`Rule` instances,
+                          or 3 length tuples.
+
+        Returns:
+            str: token id
+
         """
         path = 'acl/update'
         data = {
-            'ID': extract_id(acl),
+            'ID': extract_id(token),
         }
         if name is not None:
             data['Name'] = name
@@ -130,53 +137,53 @@ class ACLEndpoint:
         return (yield from response.json())['ID']
 
     @asyncio.coroutine
-    def destroy(self, acl):
-        """Destroy an ACL
+    def destroy(self, token):
+        """Destroy a token
 
-        :param acl: the ACL id to update
-        :type acl: ACL
-        :returns: yes or no if it was destroyed
-        :rtype: bool
+        Parameters:
+            token (Token): the Token id to update
+        Returns:
+            bool: yes or no if it was destroyed
         """
-        path = 'acl/destroy/%s' % extract_id(acl)
+        path = 'acl/destroy/%s' % extract_id(token)
         response = yield from self.client.put(path)
         return response.status == 200
 
     @asyncio.coroutine
-    def get(self, acl):
-        """Destroy an ACL
+    def get(self, token):
+        """Destroy a token
 
-        :param acl: the ACL id to update
-        :type acl: ACL
-        :returns: The ACL instance
-        :rtype: :py:class:`ACL`
+        Parameters:
+            token (Token): the Token id to update
+        Returns:
+            Token: The Token instance
         """
-        path = 'acl/info/%s' % extract_id(acl)
+        path = 'acl/info/%s' % extract_id(token)
         response = yield from self.client.get(path)
         for data in (yield from response.json()) or []:
             return decode(data)
         else:
-            raise self.NotFound('ACL %s was not found' % acl)
+            raise self.NotFound('Token %s was not found' % token)
 
     @asyncio.coroutine
-    def clone(self, acl):
-        """Clone an ACL
+    def clone(self, token):
+        """Clone a token
 
-        :param acl: the ACL id to update
-        :type acl: ACL
-        :returns: The id of the new ACL clone
-        :rtype: str
+        Parameters:
+            acl (Token): the Token id to update
+        Returns:
+            str: The id of the new Token clone
         """
-        path = 'acl/info/%s' % extract_id(acl)
+        path = 'acl/info/%s' % extract_id(token)
         response = yield from self.client.put(path)
         return (yield from response.json())['ID']
 
     @asyncio.coroutine
     def items(self):
-        """Returns a set of all ACL.
+        """Returns a set of all Token.
 
-        :returns: A set of ACL instances
-        :rtype: set
+        Returns:
+            set: A set of :class:`Token` instances
         """
         path = 'acl/list'
         response = yield from self.client.get(path)
@@ -186,12 +193,12 @@ class ACLEndpoint:
 
 
 def decode(data):
-    return ACL(id=data.get('ID'),
-               name=data.get('Name'),
-               type=data.get('Type'),
-               rules=decode_rules(data.get('Rules')),
-               create_index=data.get('CreateIndex'),
-               modify_index=data.get('ModifyIndex'))
+    return Token(id=data.get('ID'),
+                 name=data.get('Name'),
+                 type=data.get('Type'),
+                 rules=decode_rules(data.get('Rules')),
+                 create_index=data.get('CreateIndex'),
+                 modify_index=data.get('ModifyIndex'))
 
 
 def decode_rules(data):

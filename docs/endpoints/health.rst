@@ -1,3 +1,6 @@
+.. py:module:: aioconsul
+.. _health:
+
 Health
 ======
 

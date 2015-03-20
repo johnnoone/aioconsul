@@ -20,7 +20,11 @@ class SessionEndpoint:
         """
         Wraps requests to the specified dc.
 
-        :param name: the datacenter name
+        Parameters:
+            name (str): the datacenter name
+
+        Returns:
+            SessionEndpoint: a clone of this instance
         """
         instance = copy.copy(self)
         instance.dc = name

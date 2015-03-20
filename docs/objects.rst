@@ -1,3 +1,4 @@
+.. py:module:: aioconsul
 .. _objects:
 
 Objects
@@ -19,7 +20,7 @@ Objects
    :members:
    :undoc-members:
 
-.. autoclass:: aioconsul.ACL
+.. autoclass:: aioconsul.Token
    :members:
    :undoc-members:
 

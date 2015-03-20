@@ -15,10 +15,11 @@ class EventEndpoint:
     def items(self, *, name=None):
         """Lists latest events.
 
-        :param name: filter by name
-        :type name: str
-        :returns: set of events
-        :rtype: set
+        Parameters:
+            name (str): filter by name
+
+        Returns:
+            set: set of events
         """
         path = 'event/list'
         params = {'name': name}
@@ -30,18 +31,15 @@ class EventEndpoint:
              node_filter=None, service_filter=None, tag_filter=None):
         """Fires a new event.
 
-        :param event: :py:class:`Event` instance of name
-        :type event: :py:class:`Event` or str
-        :param dc: Select a datacenter
-        :type dc: str
-        :param node_filter: Filter to these nodes
-        :type node_filter: str
-        :param service_filter: Filter to these services
-        :type service_filter: str
-        :param tag_filter: Filter to these tags
-        :type tag_filter: str
-        :return: An Event instance
-        :rtype: Event
+        Parameters:
+            event (str): name of the event
+            dc (str): Select a datacenter
+            node_filter (str): Filter to these nodes
+            service_filter (str): Filter to these services
+            tag_filter (str): Filter to these tags
+
+        Returns:
+            Event: An Event instance
         """
         path = 'event/fire/%s' % getattr(event, 'name', event)
         params = {'dc': dc, 'node': node_filter,
