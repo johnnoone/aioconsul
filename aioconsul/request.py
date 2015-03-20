@@ -9,10 +9,11 @@ log = logging.getLogger(__name__)
 
 class RequestHandler:
 
-    def __init__(self, api, version=None, *, token=None):
+    def __init__(self, api, version=None, *, token=None, consistency=None):
         self.api = api
         self.version = version or 'v1'
         self.token = token
+        self.consistency = consistency
 
     @asyncio.coroutine
     def get(self, path, **kwargs):
@@ -49,11 +50,17 @@ class RequestHandler:
 
             return {k: prepare(v) for k, v in data.items() if v is not None}
 
-        params = kwargs.get('params', {})
+        params = kwargs.get('params', {}).copy()
         params.setdefault('token', self.token)
+        if self.consistency == 'consistent':
+            params.setdefault('consistent', True)
+        elif self.consistency == 'stale':
+            params.setdefault('stale', True)
         kwargs['params'] = parameters(params)
         response = yield from aiohttp.request(method, url, **kwargs)
+
         if response.status == 200:
+            log.info('%s %s %s %s', response.status, method, url, kwargs)
             return response
 
         headers = response.headers

@@ -11,6 +11,6 @@ __all__ += [
 ]
 
 __all__ += [
-    'Token', 'Rule', 'Check', 'Event', 'Member', 'Node',
-    'Service', 'NodeService'
+    'Token', 'Rule', 'Check', 'Event', 'Member', 'Node', 'Service',
+    'NodeService', 'Session', 'DataSet', 'DataMapping', 'Key'
 ]

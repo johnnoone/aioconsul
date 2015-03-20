@@ -64,6 +64,9 @@ class Node(object):
         if self._proc:
             raise Exception('Node %s is already running' % self.name)
 
+        # reset tmp store
+        Popen(['rm', '-rf', self.config['data_dir']]).communicate()
+
         env = os.environ.copy()
         env.setdefault('GOMAXPROCS', '2')
         proc = Popen(['consul', 'agent', '-config-file=%s' % self.config_file],

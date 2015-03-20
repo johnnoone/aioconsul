@@ -1,7 +1,8 @@
 from collections import namedtuple
 
 __all__ = ['Token', 'Rule', 'Check', 'Event', 'Member',
-           'Node', 'Service', 'NodeService']
+           'Node', 'Service', 'NodeService', 'Session',
+           'DataSet', 'DataMapping', 'Key']
 
 
 class Token:
@@ -226,26 +227,56 @@ class NodeService(Service):
         return '<NodeService(id=%r)>' % self.id
 
 
-class KeyMeta:
+class Session:
+    def __init__(self, id, *, node=None, checks=None,
+                 create_index=None, behavior=None):
+        self.id = id
+        self.behavior = behavior
+        self.checks = checks
+        self.create_index = create_index
+        self.node = node
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __repr__(self):
+        return '<Session(id=%r)>' % self.id
+
+
+class DataMapping(dict):
+    def __init__(self, values, *, modify_index=None, last_contact=None):
+        super(DataMapping, self).__init__(values)
+        self.modify_index = modify_index
+        self.last_contact = last_contact
+
+
+class DataSet(set):
+    def __init__(self, keys, *, modify_index=None, last_contact=None):
+        super(DataSet, self).__init__(keys)
+        self.modify_index = modify_index
+        self.last_contact = last_contact
+
+
+class Key:
     """
     Attributes:
-        key (str): key
+        name (str): key
         create_index (int): create_index
         lock_index (int): lock_index
         modify_index (int): modify_index
     """
-
-    def __init__(self, key, *, create_index, lock_index, modify_index):
-        self.key = key
+    def __init__(self, name, *, create_index=None,
+                 modify_index=None, lock_index=None):
+        self.name = name
         self.create_index = create_index
-        self.lock_index = lock_index
         self.modify_index = modify_index
+        self.lock_index = lock_index
 
     def __eq__(self, other):
-        return self.key == other.key
+        return self.name == other.name
 
     def __hash__(self):
         return hash(self.key)
 
     def __repr__(self):
-        return '<KeyMeta(key=%r)>' % self.key
+        return '<Key(key=%r)>' % self.key

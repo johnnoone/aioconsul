@@ -2,6 +2,7 @@ import asyncio
 import copy
 import json
 import logging
+from aioconsul.bases import Session
 from aioconsul.util import extract_id
 
 log = logging.getLogger(__name__)
@@ -61,6 +62,8 @@ class SessionEndpoint:
         response = yield from self.client.put(path, params=params)
         return response.status == 200
 
+    destroy = delete
+
     @asyncio.coroutine
     def get(self, session):
         path = '/session/info/%s' % extract_id(session)
@@ -91,22 +94,6 @@ class SessionEndpoint:
         params = {'dc': self.dc}
         response = self.client.put(path, params=params)
         return response.status == 200
-
-
-class Session:
-    def __init__(self, id, *, node=None, checks=None,
-                 create_index=None, behavior=None):
-        self.id = id
-        self.behavior = behavior
-        self.checks = checks
-        self.create_index = create_index
-        self.node = node
-
-    def __eq__(self, other):
-        return self.id == other.id
-
-    def __repr__(self):
-        return '<Session(id=%r)>' % self.id
 
 
 def decode(item):

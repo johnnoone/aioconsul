@@ -2,9 +2,10 @@ import pytest
 from aioconsul import Consul
 from conftest import async_test
 
+# TODO test CAS
 
 @async_test
-def test_kv_no_lock():
+def test_simple():
     client = Consul()
 
     with pytest.raises(client.kv.NotFound):

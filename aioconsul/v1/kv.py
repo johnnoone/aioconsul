@@ -1,15 +1,21 @@
 import asyncio
 import copy
 import logging
-from aioconsul import codec
+from aioconsul.bases import DataSet, DataMapping, Key
+from aioconsul.util import extract_id
 from aioconsul.exceptions import HTTPError
 
 logger = logging.getLogger(__name__)
 
 
 class KVEndpoint:
+    """
+    Attibutes:
+        dc: the datacenter
+    """
 
     class NotFound(ValueError):
+        """Raised when a key was not found."""
         pass
 
     def __init__(self, client, dc=None):
@@ -18,36 +24,168 @@ class KVEndpoint:
 
     def dc(self, name):
         """
-        Wraps requests to the specified dc.
+        Wraps requests to the specified datacenter.
 
         Parameters:
-            name (str): the datacenter name
+            name (str): datacenter name
 
         Returns:
-            KVEndpoint: a clone of this endpoint, attached to dc
-
+            KVEndpoint: a new endpoint
         """
         instance = copy.copy(self)
         instance.dc = name
         return instance
 
     @asyncio.coroutine
+    def keys(self, path, *, separator=None):
+        """Returns all keys that starts with path
+
+        Parameters:
+            path (str): the key to fetch
+
+        Returns:
+            DataSet: a set of :class:`Key`
+        """
+        fullpath = 'kv/%s' % path
+        params = {
+            'dc': self.dc,
+            'keys': True,
+            'separator': separator
+        }
+        response = yield from self.client.get(fullpath, params=params)
+        keys = yield from response.json()
+        return DataSet(keys,
+                       modify_index=response.headers['X-Consul-Index'],
+                       last_contact=response.headers['X-Consul-LastContact'])
+
+    @asyncio.coroutine
+    def acquire(self, path, *, session):
+        """Acquire a key
+
+        Parameters:
+            path (str): the key
+            session (Session): The session object
+
+        Returns:
+            bool: key has been acquired
+        """
+        fullpath = 'kv/%s' % path
+        params = {
+            'dc': self.dc,
+            'acquire': extract_id(session)
+        }
+        response = yield from self.client.put(fullpath,
+                                              params=params)
+        return (yield from response.json())
+
+    @asyncio.coroutine
+    def release(self, path, *, session):
+        """Release a key
+
+        Parameters:
+            path (str): the key
+            session (Session): The session object
+
+        Returns:
+            bool: key has been released
+        """
+        fullpath = 'kv/%s' % path
+        params = {
+            'dc': self.dc,
+            'release': extract_id(session)
+        }
+        response = yield from self.client.put(fullpath,
+                                              params=params)
+        return (yield from response.json())
+
+    @asyncio.coroutine
+    def set(self, path, obj, *, cas=None):
+        """Sets a key - obj
+
+        If CAS is providen, then it will acts as a Check and Set.
+        CAS must be the ModifyIndex of that key
+
+        Parameters:
+            path (str): the key
+            obj (object): any object type (will be compressed by codec)
+            cas (str): ModifyIndex of key
+
+        Returns:
+            bool: value has been setted
+        """
+        value, flags = encode(obj)
+        return (yield from self.put(path, value, flags=flags, cas=cas))
+
+    @asyncio.coroutine
+    def put(self, path, value, *, flags=None, cas=None):
+        """Sets a key - value (lowlevel)
+
+        If the cas parameter is set, Consul will only put the key if it does
+        not already exist. If the index is non-zero, the key is only set if
+        the index matches the ModifyIndex of that key.
+
+        Parameters:
+            path (str): the key
+            value (str): value to put
+            flags (int): flags
+            cas (int): ModifyIndex of key
+            acquire (str): session id
+            release (str): session id
+
+        Returns:
+            bool: succeed
+        """
+        fullpath = 'kv/%s' % path
+        params = {
+            'dc': self.dc,
+            'flags': flags,
+            'cas': cas
+        }
+        response = yield from self.client.put(fullpath,
+                                              params=params,
+                                              data=value)
+        return (yield from response.json())
+
+    def delete(self, path, *, recurse=None, cas=None):
+        """Deletes a key
+
+        Parameters:
+            path (str): the key to delete
+            recurse (bool): delete all keys which have the specified prefix
+            cas (str): turn the delete into a Check-And-Set operation.
+
+        Returns:
+            bool: succeed
+        """
+        fullpath = 'kv/%s' % path
+        params = {
+            'dc': self.dc,
+            'recurse': recurse,
+            'cas': cas
+        }
+        response = yield from self.client.delete(fullpath,
+                                                 params=params)
+        return response.status == 200
+
+    @asyncio.coroutine
     def get(self, path):
         """Fetch one value
+
+        The returned object has a special attribute named
+        `consul` which holds the :class:`Key` informations.
 
         Parameters:
             path (str): the key to check
 
         Returns:
-            objects: The value corresponding to key.
-
+            object: The value corresponding to key.
         """
         fullpath = '/kv/%s' % path
         params = {'dc': self.dc}
         try:
             response = yield from self.client.get(fullpath, params=params)
             for item in (yield from response.json()):
-                return codec.decode(item)
+                return decode(item)
         except HTTPError as error:
             if error.status == 404:
                 raise self.NotFound('Key %r was not found' % path)
@@ -56,66 +194,53 @@ class KVEndpoint:
     def items(self, path):
         """Fetch values by prefix
 
+        The returned objects has a special attribute named
+        `consul` which holds the :class:`Key` informations.
+
         Parameters:
             path (str): the prefix to check
 
         Returns:
-            dict: Mapping of keys - objects
+            DataMapping: Mapping of keys - objects
         """
         path = '/kv/%s' % path
         params = {'dc': self.dc,
                   'recurse': True}
         response = yield from self.client.get(path, params=params)
         data = yield from response.json()
-        return {item['Key']: codec.decode(item) for item in data}
+        logger.info('%s %s', data, response.headers)
+        values = {item['Key']: decode(item) for item in data}
 
-    @asyncio.coroutine
-    def keys(self, path, *, separator=None):
-        """Lists keys by prefix until separator
+        params = {
+            'modify_index': response.headers['X-Consul-Index'],
+            'last_contact': response.headers['X-Consul-LastContact']
+        }
+        return DataMapping(values, **params)
 
-        Parameters:
-            path (str): the prefix to check
-            separator (str): fetch all keys until this separator
 
-        Returns:
-            set: a set of keys
-        """
-        path = '/kv/%s' % path
-        params = {'dc': self.dc,
-                  'keys': True,
-                  'recurse': True,
-                  'separator': separator}
-        response = yield from self.client.get(path, params=params)
-        return set((yield from response.json()))
+class ConsulString(str):
 
-    @asyncio.coroutine
-    def set(self, path, value, *, flags=0, cas=None,
-            acquire=None, release=None):
-        path = '/kv/%s' % path
-        params = {'dc': self.dc,
-                  'flags': flags,
-                  'cas': cas,
-                  'acquire': acquire,
-                  'release': release}
-        response = yield from self.client.put(path, params=params, data=value)
-        return (yield from response.text()).strip() == 'true'
+    def __new__(cls, *args, consul, **kwargs):
+        return str.__new__(cls, *args, **kwargs)
 
-    @asyncio.coroutine
-    def delete(self, path, *, recurse=False, cas=None):
-        """Deletes keys by path.
-        If recurse is True, it will delete every keys prefixed by path.
+    def __init__(self, *args, consul, **kwargs):
+        self.consul = consul
 
-        Parameters:
-            path (str): the path to delete
-            recurse (bool): delete recursively
-            cas (str): CAS to check before delete
 
-        Returns:
-            bool: True
-        """
-        path = '/kv/%s' % path
-        params = {'cas': cas,
-                  'dc': self.dc,
-                  'recurse': recurse}
-        response = yield from self.client.delete(path, params=params)
-        return response.status == 200
+def encode(obj):
+    # TODO implements flags encoding
+    return str(obj), 0
+
+
+def decode(data, base64=True):
+    # TODO implements flags decoding
+    from base64 import b64decode
+
+    key = Key(name=data.get('Key'),
+              create_index=data.get('CreateIndex'),
+              lock_index=data.get('LockIndex'),
+              modify_index=data.get('ModifyIndex'))
+    value = data['Value']
+    if base64:
+        value = b64decode(value).decode('utf-8')
+    return ConsulString(value, consul=key)
