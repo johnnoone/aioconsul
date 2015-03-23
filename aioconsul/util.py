@@ -17,6 +17,6 @@ def format_duration(obj):
         return obj
     if isinstance(obj, int):
         return '%ss' % obj
-    if isinstance(obj, 'timedelta'):
+    if isinstance(obj, timedelta):
         return '%ss' % int(obj.total_seconds())
     raise ValueError('wrong type %r' % obj)

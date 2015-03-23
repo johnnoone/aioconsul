@@ -33,7 +33,7 @@ def test_acquire():
     # can read keys
     keys = yield from client.kv.keys('')
     assert len(keys) == len(fixtures)
-    
+
     # but cannot acquire them
     tasks = []
     for key, value in fixtures.items():
@@ -59,7 +59,6 @@ def test_ephemeral():
     """Test ephemeral operations
     """
 
-    master = Consul(consistency='consistent')
     client = Consul(consistency='consistent')
 
     session = yield from client.session.create(behavior='delete')

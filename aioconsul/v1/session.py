@@ -2,8 +2,8 @@ import asyncio
 import copy
 import json
 import logging
-from aioconsul.bases import Session
-from aioconsul.util import extract_id
+from aioconsul.bases import DataSet, Session
+from aioconsul.util import format_duration, extract_id, extract_name
 
 log = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 class SessionEndpoint:
 
     class NotFound(ValueError):
-        pass
+        """Raised when session was not found"""
 
     def __init__(self, client, dc=None):
         self.client = client
@@ -19,11 +19,16 @@ class SessionEndpoint:
 
     def dc(self, name):
         """
-        Wraps requests to the specified dc.
+        Wraps next requests to the specified datacenter.
+
+        For example::
+
+        >>> sessions = yield from client.session.dc('dc2').items()
+
+        will fetch all sessions of ``dc2``.
 
         Parameters:
-            name (str): the datacenter name
-
+            name (str): datacenter name
         Returns:
             SessionEndpoint: a clone of this instance
         """
@@ -34,21 +39,35 @@ class SessionEndpoint:
     @asyncio.coroutine
     def create(self, *, name=None, node=None, checks=None,
                behavior=None, lock_delay=None, ttl=None):
+        """Initialize a new session.
+
+        A session can be invalidated if ttl is provided.
+
+        Parameters:
+            name (str): human-readable name for the session
+            node (str): attach to this node, default to current agent
+            checks (list): associate health checks
+            behavior (str): controls the behavior when a session is invalidated
+            lock_delay (int): duration of key lock.
+            ttl (int): invalidated session until renew.
+        Returns:
+            Session: the fresh session
+        """
         path = '/session/create'
         params = {'dc': self.dc}
         data = {}
         if lock_delay:
-            data['LockDelay'] = lock_delay
+            data['LockDelay'] = format_duration(lock_delay)
         if node:
             data['Node'] = node
         if name:
-            data['Name'] = name
+            data['Name'] = extract_name(name)
         if checks:
             data['Checks'] = checks
         if behavior:
             data['Behavior'] = behavior
         if ttl is not None:
-            data['TTL'] = ttl
+            data['TTL'] = format_duration(ttl)
         response = yield from self.client.put(path,
                                               params=params,
                                               data=json.dumps(data))
@@ -57,6 +76,13 @@ class SessionEndpoint:
 
     @asyncio.coroutine
     def delete(self, session):
+        """Delete session
+
+        Parameters:
+            session (Session): id of the session
+        Returns:
+            bool: True
+        """
         path = '/session/destroy/%s' % extract_id(session)
         params = {'dc': self.dc}
         response = yield from self.client.put(path, params=params)
@@ -66,6 +92,17 @@ class SessionEndpoint:
 
     @asyncio.coroutine
     def get(self, session):
+        """
+        Returns the requested session information within datacenter.
+
+        Parameters:
+            session (Session): session id
+        Returns:
+            Session: queried session
+        Raises:
+            NotFound: session was not found
+        """
+
         path = '/session/info/%s' % extract_id(session)
         params = {'dc': self.dc}
         response = yield from self.client.get(path, params=params)
@@ -75,21 +112,39 @@ class SessionEndpoint:
         raise self.NotFound('Session %r was not found' % extract_id(session))
 
     @asyncio.coroutine
-    def node(self, node):
-        path = '/session/node/%s' % extract_id(node)
-        params = {'dc': self.dc}
-        response = yield from self.client.get(path, params=params)
-        return [decode(item) for item in (yield from response.json())]
+    def items(self, *, node=None):
+        """List active sessions.
 
-    @asyncio.coroutine
-    def items(self):
-        path = '/session/list'
+        It will returns the active sessions for current datacenter.
+        If node is specified, it will returns the active sessions for
+        given node and current datacenter.
+
+        Parameters:
+            node (Node): filter this node
+        Returns:
+            DataSet: a set of :class:`~aioconsul.Session`
+        """
+        if node:
+            path = '/session/node/%s' % extract_id(node)
+        else:
+            path = '/session/list'
         params = {'dc': self.dc}
         response = yield from self.client.get(path, params=params)
-        return [decode(item) for item in (yield from response.json())]
+        print(response.headers)
+        return DataSet({decode(item) for item in (yield from response.json())},
+                       modify_index=response.headers['X-Consul-Index'],
+                       last_contact=response.headers['X-Consul-LastContact'])
 
     @asyncio.coroutine
     def renew(self, session):
+        """
+        If session was created with a TTL set, it will renew this session.
+
+        Parameters:
+            session (Session): the session
+        Returns:
+            bool: True
+        """
         path = '/session/renew/%s' % extract_id(session)
         params = {'dc': self.dc}
         response = self.client.put(path, params=params)
@@ -97,10 +152,8 @@ class SessionEndpoint:
 
 
 def decode(item):
-    params = {}
-    params['id'] = item.get('ID', None)
-    params['behavior'] = item.get('Behavior', None)
-    params['checks'] = item.get('Checks', None)
-    params['create_index'] = item.get('CreateIndex', None)
-    params['node'] = item.get('Node', None)
-    return Session(**params)
+    return Session(id=item.get('ID'),
+                   behavior=item.get('Behavior'),
+                   checks=item.get('Checks'),
+                   create_index=item.get('CreateIndex'),
+                   node=item.get('Node'))

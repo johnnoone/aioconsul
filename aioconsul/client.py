@@ -16,7 +16,7 @@ class Consul(RequestWrapper):
         host (str): host api
         version (str): api version
         token (str): Token ID
-        consistency (str):
+        consistency (str): default, consistent or stale
     """
 
     def __init__(self, host=None, *, token=None, consistency=None):

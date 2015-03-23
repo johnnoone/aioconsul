@@ -7,8 +7,16 @@ def test_members():
     client = Consul()
     members = yield from client.agent.members()
     me = yield from client.agent.me()
-    assert len(members) == 1
-    assert me['Member'] == members[0]
+    assert me in members
+
+
+@async_test
+def test_config(leader):
+    client = Consul()
+    config = yield from client.agent.config()
+    assert leader['data_dir'] == config.data_dir
+    assert leader['node_name'] == config.node_name
+    assert leader['server'] == config.server
 
 
 @async_test

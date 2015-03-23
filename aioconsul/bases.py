@@ -1,8 +1,11 @@
+import logging
 from collections import namedtuple
 
 __all__ = ['Token', 'Rule', 'Check', 'Event', 'Member',
            'Node', 'Service', 'NodeService', 'Session',
            'DataSet', 'DataMapping', 'Key']
+
+log = logging.getLogger(__name__)
 
 
 class Token:
@@ -135,16 +138,37 @@ class Member:
         name (str): name
         address (str): address
         port (int): port
+        status (int): status
+        tags (dict): tags
+        delegate_cur (int): delegate current
+        delegate_max (int): delegate maximum
+        delegate_min (int): delegate mininum
+        protocol_cur (int): protocol current
+        protocol_max (int): protocol maximum
+        protocol_min (int): protocol mininum
     """
-    def __init__(self, name, address, port, **params):
+
+    def __init__(self, name, address, port, **opts):
         self.name = name
-        self.address = name
+        self.address = address
         self.port = port
-        for k, v in params.items():
-            setattr(self, k, v)
+        self.status = opts.get('status')
+        self.tags = opts.get('tags')
+        self.delegate_cur = opts.get('delegate_cur')
+        self.delegate_max = opts.get('delegate_max')
+        self.delegate_min = opts.get('delegate_min')
+        self.protocol_cur = opts.get('protocol_cur')
+        self.protocol_max = opts.get('protocol_max')
+        self.protocol_min = opts.get('protocol_min')
 
     def __eq__(self, other):
         return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __str__(self):
+        return str(self.name)
 
     def __repr__(self):
         return '<Member(name=%r, address=%r, port=%r)>' % (
@@ -228,6 +252,15 @@ class NodeService(Service):
 
 
 class Session:
+    """
+    Attributes:
+        id (str): session id
+        behavior (str): session behavior (delete, release)
+        checks (str): session checks
+        create_index (str): used for locks
+        node (str): attached node
+    """
+
     def __init__(self, id, *, node=None, checks=None,
                  create_index=None, behavior=None):
         self.id = id
@@ -239,11 +272,22 @@ class Session:
     def __eq__(self, other):
         return self.id == other.id
 
+    def __hash__(self):
+        return hash(self.id)
+
     def __repr__(self):
         return '<Session(id=%r)>' % self.id
 
 
 class DataMapping(dict):
+    """
+    Just a `dict` that holds response headers.
+
+    Attributes:
+        modify_index (int): modify index
+        last_contact (str): last contact
+    """
+    
     def __init__(self, values, *, modify_index=None, last_contact=None):
         super(DataMapping, self).__init__(values)
         self.modify_index = modify_index
@@ -251,8 +295,16 @@ class DataMapping(dict):
 
 
 class DataSet(set):
-    def __init__(self, keys, *, modify_index=None, last_contact=None):
-        super(DataSet, self).__init__(keys)
+    """
+    Just a `set` that holds response headers.
+
+    Attributes:
+        modify_index (int): modify index
+        last_contact (str): last contact
+    """
+    
+    def __init__(self, values, *, modify_index=None, last_contact=None):
+        super(DataSet, self).__init__(values)
         self.modify_index = modify_index
         self.last_contact = last_contact
 
@@ -282,3 +334,55 @@ class Key:
 
     def __repr__(self):
         return '<Key(key=%r)>' % self.key
+
+
+class Config(object):
+
+    class Port(object):
+
+        def __init__(self, *, opts):
+            if isinstance(opts, Config.Port):
+                pop = lambda src, attr: getattr(src, attr, None)
+            else:
+                pop = lambda src, attr: src.pop(attr, None)
+
+            self.dns = pop(opts, 'dns')
+            self.http = pop(opts, 'http')
+            self.rpc = pop(opts, 'rpc')
+            self.serf_lan = pop(opts, 'serf_lan')
+            self.serf_wan = pop(opts, 'serf_wan')
+            self.server = pop(opts, 'server')
+
+    def __init__(self, **opts):
+
+        self.bootstrap = opts.pop('bootstrap', None)
+        self.server = opts.pop('server', None)
+        self.datacenter = opts.pop('datacenter', None)
+        self.data_dir = opts.pop('data_dir', None)
+        self.dns_recursor = opts.pop('dns_recursor', None)
+        self.dns_recursors = opts.pop('dns_recursors', None)
+        self.domain = opts.pop('domain', None)
+        self.log_level = opts.pop('log_level', None)
+        self.node_name = opts.pop('node_name', None)
+        self.client_address = opts.pop('client_address', None)
+        self.bind_address = opts.pop('bind_address', None)
+        self.advertise_address = opts.pop('advertise_address', None)
+        self.port = opts.pop('port', {})
+        self.leave_on_term = opts.pop('leave_on_term', None)
+        self.skip_leave_on_int = opts.pop('skip_leave_on_int', None)
+        self.statsite_address = opts.pop('statsite_address', None)
+        self.protocol = opts.pop('protocol', None)
+        self.enable_debug = opts.pop('enable_debug', None)
+        self.verify_incoming = opts.pop('verify_incoming', None)
+        self.verify_outgoing = opts.pop('verify_outgoing', None)
+        self.ca_file = opts.pop('ca_file', None)
+        self.cert_file = opts.pop('cert_file', None)
+        self.key_file = opts.pop('key_file', None)
+        self.start_join = opts.pop('start_join', None)
+        self.ui_dir = opts.pop('ui_dir', None)
+        self.pid_file = opts.pop('pid_file', None)
+        self.enable_syslog = opts.pop('enable_syslog', None)
+        self.rejoin_after_leave = opts.pop('rejoin_after_leave', None)
+
+        if opts:
+            log.warn('Remainings opts %s', opts)

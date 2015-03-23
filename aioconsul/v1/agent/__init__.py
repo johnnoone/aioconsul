@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from aioconsul.bases import Member
+from aioconsul.bases import Config, Member
+from aioconsul.util import extract_name
 from .check import AgentCheckEndpoint
 from .service import AgentServiceEndpoint
 
@@ -22,21 +23,32 @@ class AgentEndpoint:
             set: a set of members
         """
         response = yield from self.client.get('/agent/members')
-        return [decode_member(item) for item in (yield from response.json())]
+        print(response.headers)
+        return {decode_member(item) for item in (yield from response.json())}
 
     @asyncio.coroutine
-    def me(self):
-        """Returns info about current agent.
+    def config(self):
+        """Returns configuration of agent.
 
         Returns:
-            dict: information mapping
+            Config: -
 
         """
         response = yield from self.client.get('/agent/self')
         data = yield from response.json()
-        if 'Member' in data:
-            data['Member'] = decode_member(data['Member'])
-        return data
+        return decode_config(data['Config'])
+
+    @asyncio.coroutine
+    def me(self):
+        """Returns the member object of agent.
+
+        Returns:
+            Member: -
+
+        """
+        response = yield from self.client.get('/agent/self')
+        data = yield from response.json()
+        return decode_member(data['Member'])
 
     @asyncio.coroutine
     def maintenance(self, enable, reason=None):
@@ -90,9 +102,46 @@ class AgentEndpoint:
         return response.status == 200
 
 
+def decode_config(data):
+    ports = data.get('Ports', {})
+    return Config(bootstrap=data.get('Bootstrap'),
+                  server=data.get('Server'),
+                  datacenter=data.get('Datacenter'),
+                  data_dir=data.get('DataDir'),
+                  dns_recursor=data.get('DNSRecursor'),
+                  dns_recursors=data.get('DNSRecursors'),
+                  domain=data.get('Domain'),
+                  log_level=data.get('LogLevel'),
+                  node_name=data.get('NodeName'),
+                  client_address=data.get('ClientAddr'),
+                  bind_address=data.get('BindAddr'),
+                  advertise_address=data.get('AdvertiseAddr'),
+                  port=dict(dns=ports.get('DNS'),
+                            http=ports.get('HTTP'),
+                            rpc=ports.get('RPC'),
+                            serf_lan=ports.get('SerfLan'),
+                            serf_wan=ports.get('SerfWan'),
+                            server=ports.get('Server')),
+                  leave_on_term=data.get('LeaveOnTerm'),
+                  skip_leave_on_int=data.get('SkipLeaveOnInt'),
+                  statsite_address=data.get('StatsiteAddr'),
+                  protocol=data.get('Protocol'),
+                  enable_debug=data.get('EnableDebug'),
+                  verify_incoming=data.get('VerifyIncoming'),
+                  verify_outgoing=data.get('VerifyOutgoing'),
+                  ca_file=data.get('CAFile'),
+                  cert_file=data.get('CertFile'),
+                  key_file=data.get('KeyFile'),
+                  start_join=data.get('StartJoin'),
+                  ui_dir=data.get('UiDir'),
+                  pid_file=data.get('PidFile'),
+                  enable_syslog=data.get('EnableSyslog'),
+                  rejoin_after_leave=data.get('RejoinAfterLeave'))
+
+
 def decode_member(data):
-    return Member(address=data.get('Addr'),
-                  name=data.get('Name'),
+    return Member(name=data.get('Name'),
+                  address=data.get('Addr'),
                   port=data.get('Port'),
                   status=data.get('Status'),
                   tags=data.get('Tags'),

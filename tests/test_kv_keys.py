@@ -17,7 +17,6 @@ def test_keys():
     """Test keys operations
     """
 
-    master = Consul(consistency='consistent')
     client = Consul(consistency='consistent')
 
     keys = yield from client.kv.keys('')
