@@ -16,6 +16,13 @@ setup(
     packages=[
         'aioconsul'
     ],
+    keywords = [
+        'infrastructure',
+        'asyncio',
+        'service discovery',
+        'health checking',
+        'key/value store'
+    ],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',

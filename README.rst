@@ -1,11 +1,17 @@
 AIO Consul
 ----------
 
-Implements Consul_ with asyncio_ and aiohttp_.
-It is not ready for production yet.
-It works with Python >= 3.3.
+Consul_ has multiple components, but as a whole, it is a tool for discovering and configuring services in your infrastructure, like :
 
-See the documentation_ for more informations.
+* Service Discovery
+* Health Checking
+* Key/Value Store
+* Multi Datacenter
+
+
+This library provides several features to interact with its API. It is build in top of asyncio_ and aiohttp_. It works with Python >= 3.3, and is still a work in progress.
+
+The documentation_ has more details, but sparsely this is how to work with it.
 
 Installation
 ~~~~~~~~~~~~
@@ -13,6 +19,24 @@ Installation
 ::
 
     pip install aioconsul
+
+
+Usage
+~~~~~
+
+Most of the functions are coroutines, so it must be embedded into asyncio tasks::
+
+    from aioconsul import Consul
+    client = Consul()
+
+    @asyncio.coroutine
+    def main():
+        node_name = yield from client.agent.config().node_name
+        print('I am %s!' % node_name)
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main)
+    loop.run_until_complete(future)
 
 
 Agent checks
@@ -208,15 +232,6 @@ Ephemeral k/v::
     except client.kv.NotFound:
         # but it was destroyed with the session
         pass
-
-
-Session
-~~~~~~~
-
-::
-
-    from aioconsul import Consul
-    client = Consul()
 
 
 ACL
