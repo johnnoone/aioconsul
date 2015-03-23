@@ -168,6 +168,57 @@ Health
         assert check.status == 'passing'
 
 
+KV and Sessions
+~~~~~~~~~~~~~~~
+
+Simple example::
+
+    from aioconsul import Consul
+    client = Consul()
+
+    # set a k/v
+    yield from client.kv.set('my.key', 'my.value')
+
+    # fetch a k/v
+    obj = yield from client.kv.get('my.key')
+
+    # fetched values have a special attribute `consul`
+    assert obj.key.name == 'my.key'
+
+    # delete a k/v
+    yield from client.kv.delete('my.key')
+
+
+Many k/v::
+
+    # list many k/v
+    for key, value in (yield from client.kv.items('')):
+        print(key, value)
+
+
+Ephemeral k/v::
+
+    session = yield from client.session.create(behavior='delete')
+    yield from client.kv.create('my.key', 'my.key')
+    yield from client.session.delete(session)
+
+    try:
+        # try to fetch previous k/v
+        obj = yield from client.kv.get('my.key')
+    except client.kv.NotFound:
+        # but it was destroyed with the session
+        pass
+
+
+Session
+~~~~~~~
+
+::
+
+    from aioconsul import Consul
+    client = Consul()
+
+
 ACL
 ~~~
 
