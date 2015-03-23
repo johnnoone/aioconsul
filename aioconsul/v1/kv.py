@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 class KVEndpoint:
     """
-    Attibutes:
-        dc: the datacenter
+    Attributes:
+        dc (str): the datacenter
     """
 
     class NotFound(ValueError):
