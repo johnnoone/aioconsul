@@ -30,10 +30,10 @@ class Consul(RequestWrapper):
         self.acl = v1.ACLEndpoint(self.req_handler)
         self.agent = v1.AgentEndpoint(self.req_handler)
         self.catalog = v1.CatalogEndpoint(self.req_handler)
-        self.event = v1.EventEndpoint(self.req_handler)
+        self.events = v1.EventEndpoint(self.req_handler)
         self.health = v1.HealthEndpoint(self.req_handler)
         self.kv = v1.KVEndpoint(self.req_handler)
-        self.session = v1.SessionEndpoint(self.req_handler)
+        self.sessions = v1.SessionEndpoint(self.req_handler)
 
     @property
     def host(self):

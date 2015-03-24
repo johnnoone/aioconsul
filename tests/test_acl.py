@@ -28,13 +28,13 @@ def test_leader(leader):
     assert client.acl.supported is True, 'Should be ready for acl'
 
     # remove acl
-    acls = yield from client.acl.items()
+    acls = yield from client.acl()
     for acl in acls:
         if acl.name not in ('Master Token', 'Anonymous Token'):
             yield from client.acl.destroy(acl)
 
     wanted = {leader['acl_master_token'], 'anonymous'}
-    found = {acl for acl in (yield from client.acl.items()) if acl.id in wanted}
+    found = {acl for acl in (yield from client.acl()) if acl.id in wanted}
     assert len(wanted) == len(found)
 
     token = yield from client.acl.create('foo-acl', rules=[
@@ -52,7 +52,7 @@ def test_leader(leader):
         ('key', 'foo/', 'deny'),
     ]))
 
-    for acl in (yield from client.acl.items()):
+    for acl in (yield from client.acl()):
         if acl.name == 'foo-acl':
             assert acl.id == token
             break

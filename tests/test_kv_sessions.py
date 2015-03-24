@@ -20,8 +20,8 @@ def test_acquire():
     master = Consul(consistency='consistent')
     client = Consul(consistency='consistent')
 
-    session_a = yield from master.session.create(behavior='release')
-    session_b = yield from master.session.create(behavior='release')
+    session_a = yield from master.sessions.create(behavior='release')
+    session_b = yield from master.sessions.create(behavior='release')
 
     tasks = []
     for key, value in fixtures.items():
@@ -50,8 +50,8 @@ def test_acquire():
     for fut in done:
         assert fut.result()
 
-    yield from client.session.delete(session_a)
-    yield from client.session.delete(session_b)
+    yield from client.sessions.delete(session_a)
+    yield from client.sessions.delete(session_b)
 
 
 @async_test
@@ -61,7 +61,7 @@ def test_ephemeral():
 
     client = Consul(consistency='consistent')
 
-    session = yield from client.session.create(behavior='delete')
+    session = yield from client.sessions.create(behavior='delete')
 
     tasks = []
     for key in fixtures.keys():
@@ -73,7 +73,7 @@ def test_ephemeral():
     keys = yield from client.kv.keys('')
     assert len(keys) == len(fixtures)
 
-    yield from client.session.delete(session)
+    yield from client.sessions.delete(session)
 
     keys = yield from client.kv.keys('')
     assert len(keys) == 0

@@ -2,6 +2,7 @@ import asyncio
 import logging
 from aioconsul.bases import Event
 from aioconsul.exceptions import HTTPError, ValidationError
+from aioconsul.response import render
 from aioconsul.util import extract_name
 
 logger = logging.getLogger(__name__)
@@ -13,34 +14,41 @@ class EventEndpoint:
         self.client = client
 
     @asyncio.coroutine
-    def items(self, *, name=None):
+    def items(self, *, event=None):
         """Lists latest events.
 
         Parameters:
-            name (str): filter by name
-
+            event (str): filter by event
         Returns:
-            set: set of events
+            set: set of :class:`Event`
         """
         path = 'event/list'
-        params = {'name': name}
+        params = {}
+        if event:
+            params['name'] = extract_name(event)
+
         response = yield from self.client.get(path, params=params)
-        return {decode(data) for data in (yield from response.json())}
+        values = {decode(data) for data in (yield from response.json())}
+        return render(values, response=response)
+
+    __call__ = items
 
     @asyncio.coroutine
-    def fire(self, event, data, *, dc=None,
+    def fire(self, event, payload, *, dc=None,
              node_filter=None, service_filter=None, tag_filter=None):
         """Fires a new event.
 
         Parameters:
             event (str): name of the event
+            payload (str): content to send
             dc (str): Select a datacenter
             node_filter (str): Filter to these nodes
             service_filter (str): Filter to these services
             tag_filter (str): Filter to these tags
-
         Returns:
-            Event: An Event instance
+            Event: instance
+        Raises:
+            ValidationError: an error occured
         """
         path = 'event/fire/%s' % extract_name(event)
         params = {'dc': dc, 'node': node_filter,
@@ -48,7 +56,7 @@ class EventEndpoint:
         try:
             response = yield from self.client.put(path,
                                                   params=params,
-                                                  data=data)
+                                                  data=payload)
         except HTTPError as error:
             if error.status == 500:
                 raise ValidationError(str(error))

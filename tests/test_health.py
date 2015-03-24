@@ -8,7 +8,7 @@ from conftest import async_test
 def test_health():
     client = Consul()
 
-    for check in (yield from client.health.items(node='my-local-node')):
+    for check in (yield from client.health(node='my-local-node')):
         assert check.status == 'passing', check.__dict__
 
     # create a bunch of services for the continuing tests
@@ -26,7 +26,7 @@ def test_health():
     ]
     done, pending = yield from asyncio.wait(tasks)
 
-    for check in (yield from client.health.items(service='serfHealth')):
+    for check in (yield from client.health(service='serfHealth')):
         assert check.status == 'passing'
 
     # test nodes
@@ -66,27 +66,27 @@ def test_health():
         for service in node:
             assert service.name == 'baz'
 
-    for check in (yield from client.health.items(state='passing')):
+    for check in (yield from client.health(state='passing')):
         assert check.status == 'passing'
 
-    for check in (yield from client.health.items(state='warning')):
+    for check in (yield from client.health(state='warning')):
         assert check.status == 'warning'
 
-    for check in (yield from client.health.items(state='critical')):
+    for check in (yield from client.health(state='critical')):
         assert check.status == 'critical'
 
     # mixing checks
     with pytest.raises(ValidationError):
-        yield from client.health.items()  # node, service or state required
+        yield from client.health()  # node, service or state required
 
-    for check in (yield from client.health.items(node='my-local-node', state='passing')):
+    for check in (yield from client.health(node='my-local-node', state='passing')):
         assert check.status == 'passing'
 
-    for check in (yield from client.health.items(node='my-local-node', service='foo')):
+    for check in (yield from client.health(node='my-local-node', service='foo')):
         assert check.status == 'passing'
 
-    for check in (yield from client.health.items(node='my-local-node', service='bar')):
+    for check in (yield from client.health(node='my-local-node', service='bar')):
         assert check.status == 'warning'
 
-    for check in (yield from client.health.items(node='my-local-node', service='baz')):
+    for check in (yield from client.health(node='my-local-node', service='baz')):
         assert check.status == 'critical'

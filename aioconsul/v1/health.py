@@ -102,6 +102,8 @@ class HealthEndpoint:
             values = filter_state(values, state)
         return render(values, response=response)
 
+    __call__ = items
+
 
 def decode(data):
     return Check(id=data.get('CheckID'),

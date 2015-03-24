@@ -10,11 +10,11 @@ The following endpoints are supported:
 
 Returns the checks the local agent is managing::
 
-    >>> yield from client.agent.checks.items()
+    >>> yield from client.agent.checks()
 
 Returns the services the local agent is managing::
 
-    >>> yield from client.agent.services.items()
+    >>> yield from client.agent.services()
 
 Returns the members as seen by the local serf agent::
 

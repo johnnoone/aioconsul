@@ -42,7 +42,7 @@ How to list tokens:
     master = Consul(token='master.token')
 
     # create a token that disable almost everything
-    for token in (yield from master.acl.items():
+    for token in (yield from master.acl():
         print(token)
 
 

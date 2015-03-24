@@ -31,12 +31,12 @@ def pre_clean():
     client = Consul()
 
     # remove checks
-    checks = yield from client.agent.checks.items()
+    checks = yield from client.agent.checks()
     for check in checks:
         yield from client.agent.checks.delete(check)
 
     # remove services
-    services = yield from client.agent.services.items()
+    services = yield from client.agent.services()
     for service in services:
         if service.id != 'consul':
             yield from client.agent.services.delete(service)
@@ -46,9 +46,9 @@ def pre_clean():
         yield from client.kv.delete(key)
 
     # remove sessions
-    sessions = yield from client.session.items()
+    sessions = yield from client.sessions()
     for session in sessions:
-        yield from client.session.delete(session)
+        yield from client.sessions.delete(session)
 
 
 class Node(object):

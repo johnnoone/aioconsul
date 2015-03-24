@@ -48,7 +48,7 @@ Currently this library can handle simple checks::
     client = Consul()
 
     # list all checks
-    for check in (yield from client.agent.checks.items()):
+    for check in (yield from client.agent.checks()):
         print(check.id)
 
     # look for a check
@@ -84,7 +84,7 @@ Currently this library can handle simple checks::
     client = Consul()
 
     # list all services
-    for srv in (yield from client.agent.services.items()):
+    for srv in (yield from client.agent.services()):
         print(srv.id)
 
     # search a service by its name
@@ -222,9 +222,9 @@ Many k/v::
 
 Ephemeral k/v::
 
-    session = yield from client.session.create(behavior='delete')
+    session = yield from client.sessions.create(behavior='delete')
     yield from client.kv.create('my.key', 'my.key')
-    yield from client.session.delete(session)
+    yield from client.sessions.delete(session)
 
     try:
         # try to fetch previous k/v

@@ -23,6 +23,8 @@ class AgentCheckEndpoint:
         items = yield from response.json()
         return {decode(item) for item in items.values()}
 
+    __call__ = items
+
     @asyncio.coroutine
     def register_script(self, name, script, *, interval, id=None, notes=None):
         """Registers a new local check by script.

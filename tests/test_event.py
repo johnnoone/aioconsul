@@ -9,11 +9,11 @@ def test_event():
     client = Consul()
 
     tasks = [
-        asyncio.async(client.event.fire('my-event-a', 'my-payload')),
-        asyncio.async(client.event.fire('my-event-b', 'my-payload')),
-        asyncio.async(client.event.fire('my-event-c', 'my-payload', node_filter='that-s-not-my-name')),
-        asyncio.async(client.event.fire('my-event-d', 'my-payload', service_filter='that-s-not-my-name')),
-        asyncio.async(client.event.fire('my-event-e', 'my-payload', service_filter='that-s-not-my-name', tag_filter='loled')),
+        asyncio.async(client.events.fire('my-event-a', 'my-payload')),
+        asyncio.async(client.events.fire('my-event-b', 'my-payload')),
+        asyncio.async(client.events.fire('my-event-c', 'my-payload', node_filter='that-s-not-my-name')),
+        asyncio.async(client.events.fire('my-event-d', 'my-payload', service_filter='that-s-not-my-name')),
+        asyncio.async(client.events.fire('my-event-e', 'my-payload', service_filter='that-s-not-my-name', tag_filter='loled')),
     ]
 
     done, pending = yield from asyncio.wait(tasks)
@@ -22,12 +22,12 @@ def test_event():
     event_a, event_b, event_c, event_d, event_e = sorted(events, key=lambda x: x.name)
 
     tasks = [
-        asyncio.async(client.event.items()),
-        asyncio.async(client.event.items(name='my-event-a')),
-        asyncio.async(client.event.items(name='my-event-b')),
-        asyncio.async(client.event.items(name='my-event-c')),
-        asyncio.async(client.event.items(name='my-event-d')),
-        asyncio.async(client.event.items(name='my-event-e')),
+        asyncio.async(client.events()),
+        asyncio.async(client.events(event='my-event-a')),
+        asyncio.async(client.events(event='my-event-b')),
+        asyncio.async(client.events(event='my-event-c')),
+        asyncio.async(client.events(event='my-event-d')),
+        asyncio.async(client.events(event='my-event-e')),
     ]
 
     done, pending = yield from asyncio.wait(tasks)
@@ -48,4 +48,4 @@ def test_event():
     assert (a, b, c, d, e) == (2, 2, 0, 0, 0)
 
     with pytest.raises(ValidationError):
-        yield from client.event.fire('my-event-f', 'my-payload', tag_filter='sparta')
+        yield from client.events.fire('my-event-f', 'my-payload', tag_filter='sparta')

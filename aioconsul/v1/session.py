@@ -24,7 +24,7 @@ class SessionEndpoint:
 
         For example::
 
-        >>> sessions = yield from client.session.dc('dc2').items()
+        >>> sessions = yield from client.sessions.dc('dc2').items()
 
         will fetch all sessions of ``dc2``.
 
@@ -133,6 +133,8 @@ class SessionEndpoint:
         response = yield from self.client.get(path, params=params)
         values = {decode(item) for item in (yield from response.json())}
         return render(values, response=response)
+
+    __call__ = items
 
     @asyncio.coroutine
     def renew(self, session):

@@ -143,6 +143,8 @@ class ACLEndpoint:
         response = yield from self.client.put(path)
         return (yield from response.json())
 
+    delete = destroy
+
     @asyncio.coroutine
     def get(self, token):
         """Get a token.
@@ -203,7 +205,7 @@ class ACLEndpoint:
         values = {decode(data) for data in (yield from response.json())}
         return render(values, response=response)
 
-    delete = destroy
+    __call__ = items
 
 
 def decode(data):

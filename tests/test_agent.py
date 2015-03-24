@@ -24,7 +24,7 @@ def test_maintenance():
     client = Consul()
 
     yield from client.agent.disable('Because!')
-    checks = yield from client.agent.checks.items()
+    checks = yield from client.agent.checks()
     for check in checks:
         if check.status == 'critical':
             break
@@ -32,6 +32,6 @@ def test_maintenance():
         assert False, "one check sould be at least critical"
 
     yield from client.agent.enable('Do you speak martien?')
-    checks = yield from client.agent.checks.items()
+    checks = yield from client.agent.checks()
     for check in checks:
         assert check.status != 'critical'

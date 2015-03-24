@@ -18,7 +18,7 @@ def test_check_ttl():
     assert check.name == name
     assert check.status == 'critical'
 
-    checks = yield from client.agent.checks.items()
+    checks = yield from client.agent.checks()
     assert check in checks
 
     yield from client.agent.checks.passing(check, note="that's OK")

@@ -7,7 +7,7 @@ from conftest import async_test
 @async_test
 def test_services():
     client = Consul()
-    services = yield from client.agent.services.items()
+    services = yield from client.agent.services()
     assert len(services)
     assert services[0].id == 'consul'
 

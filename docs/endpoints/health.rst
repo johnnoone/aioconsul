@@ -16,11 +16,12 @@ Returns the checks of a service::
 
 Returns the nodes and health info of a service::
 
-    >>> nodes = yield from client.health.nodes(service='my.service', tag='master')
+    >>> nodes = yield from client.health.nodes(service='my.service',
+    >>>                                        tag='master')
 
 Returns the checks in a given state::
 
-    >>> checks = yield from client.health.items(state='passing')
+    >>> checks = yield from client.health(state='passing')
 
 
 Internals

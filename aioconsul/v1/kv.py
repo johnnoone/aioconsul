@@ -29,9 +29,8 @@ class KVEndpoint:
 
         Parameters:
             name (str): datacenter name
-
         Returns:
-            KVEndpoint: a new endpoint
+            KVEndpoint: instance
         """
         instance = copy.copy(self)
         instance.dc = name
@@ -43,7 +42,7 @@ class KVEndpoint:
 
         Parameters:
             path (str): the key to fetch
-
+            separator (str): everything until
         Returns:
             DataSet: a set of :class:`Key`
         """
@@ -63,7 +62,7 @@ class KVEndpoint:
 
         Parameters:
             path (str): the key
-            session (Session): The session object
+            session (Session): session or id
 
         Returns:
             bool: key has been acquired
@@ -83,8 +82,7 @@ class KVEndpoint:
 
         Parameters:
             path (str): the key
-            session (Session): The session object
-
+            session (Session): session or id
         Returns:
             bool: key has been released
         """
@@ -107,8 +105,7 @@ class KVEndpoint:
         Parameters:
             path (str): the key
             obj (object): any object type (will be compressed by codec)
-            cas (str): ModifyIndex of key
-
+            cas (str): modify_index of key
         Returns:
             bool: value has been setted
         """
@@ -127,10 +124,9 @@ class KVEndpoint:
             path (str): the key
             value (str): value to put
             flags (int): flags
-            cas (int): ModifyIndex of key
+            cas (int): modify_index of key
             acquire (str): session id
             release (str): session id
-
         Returns:
             bool: succeed
         """
@@ -146,13 +142,12 @@ class KVEndpoint:
         return (yield from response.json())
 
     def delete(self, path, *, recurse=None, cas=None):
-        """Deletes a key
+        """Deletes one or many keys.
 
         Parameters:
             path (str): the key to delete
             recurse (bool): delete all keys which have the specified prefix
             cas (str): turn the delete into a Check-And-Set operation.
-
         Returns:
             bool: succeed
         """
@@ -174,10 +169,11 @@ class KVEndpoint:
         `consul` which holds the :class:`Key` informations.
 
         Parameters:
-            path (str): the key to check
-
+            path (str): exact match
         Returns:
             object: The value corresponding to key.
+        Raises:
+            NotFound: key was not found
         """
         fullpath = '/kv/%s' % path
         params = {'dc': self.dc}
@@ -197,10 +193,10 @@ class KVEndpoint:
         `consul` which holds the :class:`Key` informations.
 
         Parameters:
-            path (str): the prefix to check
+            path (str): prefix to check
 
         Returns:
-            DataMapping: Mapping of keys - objects
+            DataMapping: mapping of key names - values
         """
         path = '/kv/%s' % path
         params = {'dc': self.dc,
@@ -211,6 +207,8 @@ class KVEndpoint:
         values = {item['Key']: decode(item) for item in data}
 
         return render(values, response=response)
+
+    __call__ = items
 
 
 class ConsulString(str):
