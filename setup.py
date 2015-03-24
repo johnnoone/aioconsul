@@ -36,7 +36,7 @@ setup(
         'Topic :: System :: Networking :: Monitoring',
     ],
     install_requires=[
-        'aiohttp==0.14.4'
+        'aiohttp>=0.14.4'
     ],
     extras_require={
         ':python_version=="3.3"': ['asyncio'],
