@@ -59,6 +59,11 @@ def test_catalog_register_service():
 
     node = yield from client.catalog.get('my-local-node')
     assert 'foo' in node.services
+    for service in node:
+        if service.name == 'foo':
+            break
+    else:
+        assert False, 'must have a foo service'
 
     resp = yield from client.catalog.deregister_service(node, service=service)
     assert resp

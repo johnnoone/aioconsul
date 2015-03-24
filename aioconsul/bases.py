@@ -153,7 +153,7 @@ class Node:
         if hasattr(self, 'service'):
             return iter([self.service])
         if hasattr(self, 'services'):
-            return self.services.values()
+            return iter(self.services.values())
         raise TypeError('Does not have service nor services')
 
     def __eq__(self, other):
@@ -307,17 +307,17 @@ class Key:
         return self.name == other.name
 
     def __hash__(self):
-        return hash(self.key)
+        return hash(self.name)
 
     def __repr__(self):
-        return '<Key(key=%r)>' % self.key
+        return '<Key(name=%r)>' % self.name
 
 
 class Config(object):
 
     class Port(object):
 
-        def __init__(self, *, opts):
+        def __init__(self, opts):
             if isinstance(opts, Config.Port):
                 pop = lambda src, attr: getattr(src, attr, None)
             else:
@@ -344,7 +344,7 @@ class Config(object):
         self.client_address = opts.pop('client_address', None)
         self.bind_address = opts.pop('bind_address', None)
         self.advertise_address = opts.pop('advertise_address', None)
-        self.port = opts.pop('port', {})
+        self.port = self.Port(opts.pop('port', {}))
         self.leave_on_term = opts.pop('leave_on_term', None)
         self.skip_leave_on_int = opts.pop('skip_leave_on_int', None)
         self.statsite_address = opts.pop('statsite_address', None)

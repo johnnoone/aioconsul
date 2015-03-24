@@ -120,7 +120,7 @@ class CatalogEndpoint:
         Returns:
             bool: ``True`` it is deregistered
         Raises:
-            ValidationError
+            ValidationError: an error occured
         """
         response = yield from self.deregister(node)
         return response
@@ -135,7 +135,7 @@ class CatalogEndpoint:
         Returns:
             bool: ``True`` it is deregistered
         Raises:
-            ValidationError
+            ValidationError: an error occured
         """
         response = yield from self.deregister(node, check=check)
         return response
@@ -150,7 +150,7 @@ class CatalogEndpoint:
         Returns:
             bool: ``True`` it is deregistered
         Raises:
-            ValidationError
+            ValidationError: an error occured
         """
         response = yield from self.deregister(node, service=service)
         return response
@@ -166,7 +166,7 @@ class CatalogEndpoint:
         Returns:
             bool: ``True`` it is deregistered
         Raises:
-            ValidationError
+            ValidationError: an error occured
         """
         path = 'catalog/deregister'
 
@@ -231,7 +231,7 @@ class CatalogEndpoint:
         Returns:
             DataSet: set of :class:`Node` instances
         Raises:
-            ValidationError
+            ValidationError: an error occured
         """
         if service is not None:
             path = '/catalog/service/%s' % extract_id(service)

@@ -14,43 +14,11 @@ class HealthEndpoint:
         self.client = client
 
     @asyncio.coroutine
-    def node(self, node, *, dc=None):
-        """Returns checks by node.
-
-        Parameters:
-            node (Node): node or id
-            dc (str): datacenter name
-        Returns:
-            DataSet: set of :class:`Check` instances
-        """
-        path = '/health/node/%s' % extract_id(node)
-        params = {'dc': dc}
-        response = yield from self.client.get(path, params=params)
-        values = {decode(data) for data in (yield from response.json())}
-        return render(values, response=response)
-
-    @asyncio.coroutine
-    def checks(self, service, *, dc=None):
-        """Returns checks by service.
-
-        Parameters:
-            service (Service): service or id
-            dc (str): datacenter name
-        Returns:
-            DataSet: set of :class:`Check` instances
-        """
-        path = '/health/checks/%s' % extract_id(service)
-        params = {'dc': dc}
-        response = yield from self.client.get(path, params=params)
-        values = {decode(data) for data in (yield from response.json())}
-        return render(values, response=response)
-
-    @asyncio.coroutine
-    def service(self, service, *, dc=None, tag=None, state=None):
-        """Returns nodes by service.
+    def nodes(self, service, *, dc=None, tag=None, state=None):
+        """Returns nodes by service, tag and state.
 
         The returned :class:`Node` instance has two special attributes:
-        
+
         * `service` which holds an instance of :class:`NodeService`
         * `checks` which holds instances of :class:`Check`
 
@@ -86,21 +54,52 @@ class HealthEndpoint:
         return render(values, response=response)
 
     @asyncio.coroutine
-    def state(self, state, *, dc=None):
-        """Returns checks by states.
+    def items(self, *, node=None, service=None, state=None, dc=None):
+        """Returns checks filtered by node, service and state.
 
         Parameters:
+            node (Node): node or id
+            service (Service): service or id
             state (str): check state
             dc (str): datacenter name
         Returns:
             DataSet: set of :class:`Check` instances
+        Raises:
+            ValidationError: an error occured
         """
-        if state not in CHECK_STATES:
-            raise ValidationError('Wrong state %r' % state)
-        path = '/health/state/%s' % state
+        if node:
+            path = '/health/node/%s' % extract_id(node)
+            node = None
+        elif service:
+            path = '/health/checks/%s' % extract_id(service)
+            service = None
+        elif state:
+            if state not in CHECK_STATES:
+                raise ValidationError('Wrong state %r' % state)
+            path = '/health/state/%s' % state
+            state = None
+        else:
+            raise ValidationError('Required node, service or state')
         params = {'dc': dc}
+
         response = yield from self.client.get(path, params=params)
         values = {decode(data) for data in (yield from response.json())}
+        if service:
+
+            def filter_service(checks, service):
+                service = extract_id(service)
+                for check in checks:
+                    if check.service_id == service:
+                        yield check
+            values = filter_service(values, service)
+        if state:
+            def filter_state(checks, state):
+                if state not in CHECK_STATES:
+                    raise ValidationError('Wrong state %r' % state)
+                for check in checks:
+                    if check.status == state:
+                        yield check
+            values = filter_state(values, state)
         return render(values, response=response)
 
 
