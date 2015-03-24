@@ -14,3 +14,5 @@ __all__ += [
     'Token', 'Rule', 'Check', 'Event', 'Member', 'Node', 'Service',
     'NodeService', 'Session', 'DataSet', 'DataMapping', 'Key'
 ]
+
+__version__ = '0.2'

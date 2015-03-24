@@ -7,7 +7,7 @@ with open('README.rst') as file:
 
 setup(
     name='aioconsul',
-    version='0.1',
+    version='0.2',
     description='Consul wrapper for asyncio',
     long_description=content,
     author='Xavier Barbosa',
