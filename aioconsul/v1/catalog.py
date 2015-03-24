@@ -267,8 +267,11 @@ class CatalogEndpoint:
     def get(self, node):
         """Get a node. Raises a NotFound if it's not found.
 
-        The :class:`Node` instance will have a special attributes named
-        `services`, which implements a list of services attached to the node.
+        The returned :class:`Node` instance has a special attribute named
+        `services` which holds a list of :class:`NodeService`.
+
+        The returned objects has a special attribute named
+        `services` which holds the :class:`Key` informations.
 
         Parameters:
             node (str): node or name
