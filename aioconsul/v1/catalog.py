@@ -1,42 +1,63 @@
 import asyncio
+import copy
 import json
 import logging
 from aioconsul.bases import Check, Node, NodeService, Service
 from aioconsul.exceptions import ValidationError
-from aioconsul.util import extract_id
+from aioconsul.response import render
+from aioconsul.util import extract_id, extract_name
 
 log = logging.getLogger(__name__)
 
 
 class CatalogEndpoint:
+    """
+    Attributes:
+        dc (str): the datacenter
+    """
 
     class NotFound(ValueError):
         """Raised when a node was not found."""
         pass
 
-    def __init__(self, client):
+    def __init__(self, client, dc=None):
         self.client = client
+        self.dc = dc
+
+    def dc(self, name):
+        """
+        Wraps requests to the specified datacenter.
+
+        Parameters:
+            name (str): datacenter name
+
+        Returns:
+            CatalogEndpoint: a new endpoint
+        """
+        instance = copy.copy(self)
+        instance.dc = name
+        return instance
 
     @asyncio.coroutine
-    def register_node(self, node, *, dc=None):
+    def register_node(self, node):
         """Registers a node"""
-        response = yield from self.register(node, dc=dc)
+        response = yield from self.register(node)
         return response
 
     @asyncio.coroutine
-    def register_check(self, node, *, check, dc=None):
+    def register_check(self, node, *, check):
         """Registers a check"""
-        response = yield from self.register(node, check=check, dc=dc)
+        response = yield from self.register(node, check=check)
         return response
 
     @asyncio.coroutine
-    def register_service(self, node, *, service, dc=None):
+    def register_service(self, node, *, service):
         """Registers a service"""
-        response = yield from self.register(node, service=service, dc=dc)
+        response = yield from self.register(node, service=service)
         return response
 
     @asyncio.coroutine
-    def register(self, node, *, dc=None, check=None, service=None):
+    def register(self, node, *, check=None, service=None):
         """Registers to catalog"""
         path = 'catalog/register'
 
@@ -65,7 +86,7 @@ class CatalogEndpoint:
                                   tags=service.get('tags'))
 
         data = conf({
-            'Datacenter': dc,
+            'Datacenter': self.dc,
             'Node': node.name,
             'Address': node.address
         })
@@ -91,26 +112,62 @@ class CatalogEndpoint:
         return response.status == 200
 
     @asyncio.coroutine
-    def deregister_node(self, node, *, dc=None):
-        """Deregisters a node"""
-        response = yield from self.deregister(node, dc=dc)
+    def deregister_node(self, node):
+        """Deregisters a node
+
+        Parameters:
+            node (Node): node or id
+        Returns:
+            bool: ``True`` it is deregistered
+        Raises:
+            ValidationError
+        """
+        response = yield from self.deregister(node)
         return response
 
     @asyncio.coroutine
-    def deregister_check(self, node, *, check, dc=None):
-        """Deregisters a check"""
-        response = yield from self.deregister(node, dc=dc, check=check)
+    def deregister_check(self, node, *, check):
+        """Deregisters a check
+
+        Parameters:
+            node (Node): node or id
+            check (Check): check or id
+        Returns:
+            bool: ``True`` it is deregistered
+        Raises:
+            ValidationError
+        """
+        response = yield from self.deregister(node, check=check)
         return response
 
     @asyncio.coroutine
-    def deregister_service(self, node, *, service, dc=None):
-        """Deregisters a service"""
-        response = yield from self.deregister(node, dc=dc, service=service)
+    def deregister_service(self, node, *, service):
+        """Deregisters a service
+
+        Parameters:
+            node (Node): node or id
+            service (NodeService): service or id
+        Returns:
+            bool: ``True`` it is deregistered
+        Raises:
+            ValidationError
+        """
+        response = yield from self.deregister(node, service=service)
         return response
 
     @asyncio.coroutine
-    def deregister(self, node, *, check=None, service=None, dc=None):
-        """Deregisters from catalog"""
+    def deregister(self, node, *, check=None, service=None):
+        """Deregisters from catalog
+
+        Parameters:
+            node (Node): node or id
+            check (Check): check or id
+            service (NodeService): service or id
+        Returns:
+            bool: ``True`` it is deregistered
+        Raises:
+            ValidationError
+        """
         path = 'catalog/deregister'
 
         def conf(data):
@@ -136,7 +193,7 @@ class CatalogEndpoint:
             service_id = service
 
         data = conf({
-            'Datacenter': dc,
+            'Datacenter': self.dc,
             'Node': node,
             'CheckID': check_id,
             'ServiceID': service_id
@@ -162,18 +219,25 @@ class CatalogEndpoint:
         return set((yield from response.json()))
 
     @asyncio.coroutine
-    def nodes(self, *, dc=None, service=None, tag=None):
+    def nodes(self, *, service=None, tag=None):
         """Lists nodes.
 
-        If service is given, node instances will have a special
-        attribute named `service`, which implements a NodeService
-        instance.
+        If service is given, :class:`Node` instances will have a special
+        attribute named `service`, which holds a :class:`NodeService` instance.
+
+        Parameters:
+            service (Service): service or id
+            tag (str): tag of service
+        Returns:
+            DataSet: set of :class:`Node` instances
+        Raises:
+            ValidationError
         """
         if service is not None:
             path = '/catalog/service/%s' % extract_id(service)
-            params = {'dc': dc, 'tag': tag}
+            params = {'dc': self.dc, 'tag': tag}
             response = yield from self.client.get(path, params=params)
-            nodes = []
+            values = []
             for data in (yield from response.json()):
                 node = Node(name=data.get('Node'),
                             address=data.get('Address'))
@@ -182,31 +246,40 @@ class CatalogEndpoint:
                                            tags=data.get('ServiceTags'),
                                            address=data.get('ServiceAddress'),
                                            port=data.get('ServicePort'))
-                nodes.append(node)
-            return nodes
+                values.append(node)
+            return render(values, response=response)
 
         elif tag is not None:
             raise ValidationError('Tag belongs to service')
 
         else:
             path = '/catalog/nodes'
-            params = {'dc': dc}
+            params = {'dc': self.dc}
             response = yield from self.client.get(path, params=params)
-            nodes = []
+            values = []
             for data in (yield from response.json()):
-                node = Node(data.get('Node'), data.get('Address'))
-                nodes.append(node)
-            return nodes
+                node = Node(name=data.get('Node'),
+                            address=data.get('Address'))
+                values.append(node)
+            return render(values, response=response)
 
     @asyncio.coroutine
-    def get(self, name, *, dc=None):
+    def get(self, node):
         """Get a node. Raises a NotFound if it's not found.
 
-        The instance will have a special attributes named `services`,
-        which implements a list of services attached to the node.
+        The :class:`Node` instance will have a special attributes named
+        `services`, which implements a list of services attached to the node.
+
+        Parameters:
+            node (str): node or name
+        Returns:
+            Node: instance
+        Raises:
+            NotFound: node was not found
         """
-        path = '/catalog/node/%s' % name
-        params = {'dc': dc}
+        name = extract_name(node)
+        path = '/catalog/node/%s' % extract_name(name)
+        params = {'dc': self.dc}
         response = yield from self.client.get(path, params=params)
         data = (yield from response.json())
         if data:
@@ -222,13 +295,14 @@ class CatalogEndpoint:
         raise self.NotFound('No node was not found for %s' % name)
 
     @asyncio.coroutine
-    def services(self, *, dc=None):
+    def services(self):
         """Lists services.
 
         Returns:
             dict: a mapping of services - known tags
         """
-        params = {'dc': dc}
+        params = {'dc': self.dc}
         response = yield from self.client.get('/catalog/services',
                                               params=params)
-        return (yield from response.json())
+        values = yield from response.json()
+        return render(values, response=response)

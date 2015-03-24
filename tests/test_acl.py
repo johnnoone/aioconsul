@@ -86,3 +86,25 @@ def test_leader(leader):
 
     with pytest.raises(client.acl.NotFound):
         yield from client.acl.get(token)
+
+
+@async_test
+def test_cloning(leader):
+    assert 'acl_master_token' in leader, 'Cannot perform the running tests'
+
+    client = Consul(token=leader['acl_master_token'])
+
+    token = (yield from client.acl.create('foo-acl', rules=[
+        ('key', 'foo/bar/baz', 'deny'),
+    ], obj=True))
+
+    clone = (yield from client.acl.clone(token, obj=True))
+
+    # they don't have the same ID
+    assert token != clone
+
+    # but have the same name, type, rules...
+    assert token.name == clone.name
+    assert token.type == clone.type
+    assert token.rules == clone.rules
+    

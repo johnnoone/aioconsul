@@ -20,7 +20,7 @@ class AgentEndpoint:
         """Returns a set of members.
 
         Returns:
-            set: a set of members
+            set: set of :class:`Member` instances
         """
         response = yield from self.client.get('/agent/members')
         print(response.headers)
@@ -31,7 +31,7 @@ class AgentEndpoint:
         """Returns configuration of agent.
 
         Returns:
-            Config: -
+            Config: instance
 
         """
         response = yield from self.client.get('/agent/self')
@@ -43,7 +43,7 @@ class AgentEndpoint:
         """Returns the member object of agent.
 
         Returns:
-            Member: -
+            Member: instance
 
         """
         response = yield from self.client.get('/agent/self')
@@ -51,18 +51,33 @@ class AgentEndpoint:
         return decode_member(data['Member'])
 
     @asyncio.coroutine
-    def maintenance(self, enable, reason=None):
-        """Switch agent maintenance mode.
+    def enable(self, reason=None):
+        """Enable agent.
 
         Parameters:
-            enable (bool): Should we put this agent in maintenance mode?
-            reason (str): An opaque str about the maintenance.
-
+            reason (str): human readable reason
         Returns:
-            bool: Agent status
+             bool: ``True`` it has been enabled
         """
         params = {
-            'enable': enable,
+            'enable': False,
+            'reason': reason
+        }
+        response = yield from self.client.put('/agent/maintenance',
+                                              params=params)
+        return response.status == 200
+
+    @asyncio.coroutine
+    def disable(self, reason=None):
+        """Disable agent.
+
+        Parameters:
+            reason (str): human readable reason
+        Returns:
+             bool: ``True`` it has been disabled
+        """
+        params = {
+            'enable': True,
             'reason': reason
         }
         response = yield from self.client.put('/agent/maintenance',
@@ -74,11 +89,10 @@ class AgentEndpoint:
         """Asks the agent to join a cluster.
 
         Parameters:
-            address (str): Address to join
-            wan (str): Use wan?
-
+            address (str): address to join
+            wan (str): use wan?
         Returns:
-            bool: Agent status
+            bool: agent status
         """
         path = '/agent/join/%s' % str(address).lstrip('/')
         params = {}
@@ -89,13 +103,12 @@ class AgentEndpoint:
 
     @asyncio.coroutine
     def force_leave(self, member):
-        """Asks a member to leaver the cluster.
+        """Asks a member to leave the cluster.
 
         Parameters:
-            member (str): The member to remove from cluster.
-
+            member (Member): member or name
         Returns:
-            bool: Action status
+            bool: action status
         """
         path = '/agent/force-leave/%s' % extract_name(member)
         response = yield from self.client.get(path)

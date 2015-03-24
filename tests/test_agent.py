@@ -23,7 +23,7 @@ def test_config(leader):
 def test_maintenance():
     client = Consul()
 
-    yield from client.agent.maintenance(True, 'Because!')
+    yield from client.agent.disable('Because!')
     checks = yield from client.agent.checks.items()
     for check in checks:
         if check.status == 'critical':
@@ -31,7 +31,7 @@ def test_maintenance():
     else:
         assert False, "one check sould be at least critical"
 
-    yield from client.agent.maintenance(False, 'Do you speak martien?')
+    yield from client.agent.enable('Do you speak martien?')
     checks = yield from client.agent.checks.items()
     for check in checks:
         assert check.status != 'critical'

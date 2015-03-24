@@ -2,7 +2,8 @@ import asyncio
 import copy
 import json
 import logging
-from aioconsul.bases import DataSet, Session
+from aioconsul.bases import Session
+from aioconsul.response import render
 from aioconsul.util import format_duration, extract_id, extract_name
 
 log = logging.getLogger(__name__)
@@ -130,10 +131,8 @@ class SessionEndpoint:
             path = '/session/list'
         params = {'dc': self.dc}
         response = yield from self.client.get(path, params=params)
-        print(response.headers)
-        return DataSet({decode(item) for item in (yield from response.json())},
-                       modify_index=response.headers['X-Consul-Index'],
-                       last_contact=response.headers['X-Consul-LastContact'])
+        values = {decode(item) for item in (yield from response.json())}
+        return render(values, response=response)
 
     @asyncio.coroutine
     def renew(self, session):

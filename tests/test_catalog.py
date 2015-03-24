@@ -7,7 +7,7 @@ from conftest import async_test
 def test_catalog_nodes():
     client = Consul()
     nodes = yield from client.catalog.nodes()
-    assert nodes[0].name == 'my-local-node'
+    assert list(nodes)[0].name == 'my-local-node'
 
     with pytest.raises(client.catalog.NotFound):
         yield from client.catalog.get('foo')
@@ -30,6 +30,13 @@ def test_catalog_services():
 
     nodes = yield from client.catalog.nodes(service='consul', tag='dumb')
     assert len(nodes) == 0
+
+
+@async_test
+def test_catalog_services_list():
+    client = Consul()
+    services = yield from client.catalog.services()
+    assert services == {'consul': []}
 
 
 @async_test

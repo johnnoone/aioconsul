@@ -1,7 +1,8 @@
 import asyncio
 import copy
 import logging
-from aioconsul.bases import DataSet, DataMapping, Key
+from aioconsul.bases import Key
+from aioconsul.response import render
 from aioconsul.util import extract_id
 from aioconsul.exceptions import HTTPError
 
@@ -53,10 +54,8 @@ class KVEndpoint:
             'separator': separator
         }
         response = yield from self.client.get(fullpath, params=params)
-        keys = yield from response.json()
-        return DataSet(keys,
-                       modify_index=response.headers['X-Consul-Index'],
-                       last_contact=response.headers['X-Consul-LastContact'])
+        values = yield from response.json()
+        return render(values, response=response)
 
     @asyncio.coroutine
     def acquire(self, path, *, session):
@@ -211,11 +210,7 @@ class KVEndpoint:
         logger.info('%s %s', data, response.headers)
         values = {item['Key']: decode(item) for item in data}
 
-        params = {
-            'modify_index': response.headers['X-Consul-Index'],
-            'last_contact': response.headers['X-Consul-LastContact']
-        }
-        return DataMapping(values, **params)
+        return render(values, response=response)
 
 
 class ConsulString(str):

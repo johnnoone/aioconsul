@@ -11,13 +11,18 @@ logger = logging.getLogger(__name__)
 class AgentServiceEndpoint:
 
     class NotFound(ValueError):
-        pass
+        """Raised when service was not found"""
 
     def __init__(self, client):
         self.client = client
 
     @asyncio.coroutine
     def items(self):
+        """Returns the services the local agent is managing.
+
+        Returns:
+            set: set of :class:`Check` instances
+        """
         response = yield from self.client.get('/agent/services')
         items = yield from response.json()
         return [decode(item) for item in items.values()]
@@ -25,6 +30,19 @@ class AgentServiceEndpoint:
     @asyncio.coroutine
     def register_script(self, name, script, *, id=None, tags=None,
                         address=None, port=None, interval=None):
+        """Registers a new local service with a check by script.
+
+        Parameters:
+            name (str): service name
+            script (str): path to script
+            interval (str): evaluate script every `ìnterval`
+            id (str): service id
+            tags (list): service tags
+            address (str): service address
+            port (str): service port
+        Returns:
+             NodeService: instance
+        """
         response = yield from self.register(id=id,
                                             name=name,
                                             tags=tags,
@@ -37,6 +55,19 @@ class AgentServiceEndpoint:
     @asyncio.coroutine
     def register_http(self, name, http, *, id=None, tags=None,
                       address=None, port=None, interval=None):
+        """Registers a new local service with a check by http.
+
+        Parameters:
+            name (str): service name
+            http (str): url to ping
+            interval (str): evaluate script every `ìnterval`
+            id (str): service id
+            tags (list): service tags
+            address (str): service address
+            port (str): service port
+        Returns:
+             NodeService: instance
+        """
         response = yield from self.register(id=id,
                                             name=name,
                                             tags=tags,
@@ -49,6 +80,18 @@ class AgentServiceEndpoint:
     @asyncio.coroutine
     def register_ttl(self, name, ttl, *, id=None,
                      tags=None, address=None, port=None):
+        """Registers a new local service with a check by ttl.
+
+        Parameters:
+            name (str): service name
+            ttl (str): period status update
+            id (str): service id
+            tags (list): service tags
+            address (str): service address
+            port (str): service port
+        Returns:
+             NodeService: instance
+        """
         response = yield from self.register(id=id,
                                             name=name,
                                             tags=tags,
@@ -60,6 +103,17 @@ class AgentServiceEndpoint:
     @asyncio.coroutine
     def register(self, name, *, id=None, tags=None,
                  address=None, port=None, check=None):
+        """Registers a new local service.
+
+        Parameters:
+            name (str): service name
+            id (str): service id
+            tags (list): service tags
+            address (str): service address
+            port (str): service port
+        Returns:
+             NodeService: instance
+        """
         path = '/agent/service/register'
         data = {
             'Name': name
@@ -102,12 +156,54 @@ class AgentServiceEndpoint:
 
     @asyncio.coroutine
     def deregister(self, service):
+        """Deregister a local service.
+
+        Parameters:
+            service (NodeService): service or id
+        Returns:
+             bool: ``True`` it has been deregistered
+        """
         path = '/agent/service/deregister/%s' % extract_id(service)
         response = yield from self.client.get(path)
         return response.status == 200
 
     @asyncio.coroutine
+    def enable(self, service, reason=None):
+        """Enable service.
+
+        Parameters:
+            service (NodeService): service or id
+            reason (str): human readable reason
+        Returns:
+             bool: ``True`` it has been enabled
+        """
+        response = yield from self.maintenance(service, False, reason)
+        return response
+
+    @asyncio.coroutine
+    def disable(self, service, reason=None):
+        """Disable service.
+
+        Parameters:
+            service (NodeService): service or id
+            reason (str): human readable reason
+        Returns:
+             bool: ``True`` it has been disabled
+        """
+        response = yield from self.maintenance(service, True, reason)
+        return response
+
+    @asyncio.coroutine
     def maintenance(self, service, enable, reason=None):
+        """Manages service maintenance mode.
+
+        Parameters:
+            service (NodeService): service or id
+            enable (bool): in maintenance or not
+            reason (str): human readable reason
+        Returns:
+             bool: ``True`` all is OK
+        """
         path = '/agent/service/maintenance/%s' % extract_id(service)
         params = {
             'enable': enable,
@@ -118,6 +214,15 @@ class AgentServiceEndpoint:
 
     @asyncio.coroutine
     def get(self, service):
+        """Fetch local service.
+
+        Parameters:
+            service (NodeService): service or id
+        Returns:
+            Service: instance
+        Raises:
+            NotFound: service was not found
+        """
         response = yield from self.client.get('/agent/services')
         items = yield from response.json()
         service_id = extract_id(service)

@@ -78,7 +78,8 @@ class RequestHandler:
         response = yield from aiohttp.request(method, url, **kwargs)
 
         if response.status == 200:
-            log.info('%s %s %s %s', response.status, method, url, kwargs)
+            log.info('%s %s %s %s %s',
+                     response.status, method, url, kwargs, response.headers)
             return response
 
         headers = response.headers

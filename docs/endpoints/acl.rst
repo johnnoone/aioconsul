@@ -11,6 +11,8 @@ How to create a new token:
 .. code-block:: python
 
     from aioconsul import Consul, ACLPermissionDenied
+    import pytest
+
     master = Consul(token='master.token')
 
     # create a token that disable almost everything

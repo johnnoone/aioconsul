@@ -5,7 +5,8 @@ from collections import defaultdict
 from aioconsul.bases import Token, Rule
 from aioconsul.exceptions import ACLSupportDisabled, HTTPError
 from aioconsul.request import RequestWrapper
-from aioconsul.util import extract_id, extract_name
+from aioconsul.response import render
+from aioconsul.util import extract_id
 
 logger = logging.getLogger(__name__)
 
@@ -73,55 +74,48 @@ class ACLEndpoint:
         return self.supported
 
     @asyncio.coroutine
-    def create(self, token, *, type=None, rules=None):
-        """Create a token.
+    def create(self, name, *, type=None, rules=None, obj=False):
+        """Create a new token.
 
-        It is used to make a new token.
-        A token has a name, a type, and a set of ACL rules.
+        A :class:`Token` has a name, a type, and a set of ACL rules.
 
-        The result is a token id that can be used as a token into
-        :py:class:`Consul` instances
+        The result can be used as a token into :py:class:`Consul` instances.
 
         Parameters:
-            token (Token): the futur name of the Token
-            type (str): the type of the :py:class:`Token` (client or
-                        management)
-            rules (list): A set of rules to implement. These rules can be a
-                          list of :py:class:`Rule` instances, or 3 length
-                          tuples.
-
+            name (str): human name
+            type (str): ``client`` or ``management``
+            rules (list): a set of rules to implement, which can be a list of
+                          :py:class:`Rule` instances or 3 length tuples.
+            obj (bool): must returns a :class:`Token` instance
+                        at the cost of additional http queries.
         Returns:
-            str: token id
+            str | Token: id or :class:`Token`, depending of `obj` parameter.
         """
         path = 'acl/create'
-        name = extract_name(token)
-        type = type or 'client'
         data = {
             'Name': name,
-            'Type': type,
+            'Type': type or 'client',
             'Rules': encode_rules(rules)
         }
         response = yield from self.client.put(path, data=json.dumps(data))
-        return (yield from response.json())['ID']
+        return (yield from self._parse_put_token(response, obj))
 
     @asyncio.coroutine
-    def update(self, token, *, name=None, type=None, rules=None):
-        """Update a token
+    def update(self, token, *, name=None, type=None, rules=None, obj=False):
+        """Update a token.
 
-        The result is a token id that can be used as a token into
-        :py:class:`Consul` instances
+        The result can be used as a token into :py:class:`Consul` instances.
 
         Parameters:
-            token (Token): the Token id to update
-            name (str): the new name of token
-            type (str): the new type (client or management)
-            rules (list): A set of new rules to implement. These rules can
-                          be a list of :py:class:`Rule` instances,
-                          or 3 length tuples.
-
+            token (Token): token or id to update
+            name (Token): human name
+            type (str): ``client`` or ``management``
+            rules (list): a set of rules to implement, which can be a list of
+                          :py:class:`Rule` instances or 3 length tuples.
+            obj (bool): must returns a :class:`Token` instance
+                        at the cost of additional http queries.
         Returns:
-            str: token id
-
+            str | Token: id or :class:`Token`, depending of `obj` parameter.
         """
         path = 'acl/update'
         data = {
@@ -134,29 +128,33 @@ class ACLEndpoint:
         if rules is not None:
             data['Rules'] = encode_rules(rules)
         response = yield from self.client.put(path, data=json.dumps(data))
-        return (yield from response.json())['ID']
+        return (yield from self._parse_put_token(response, obj))
 
     @asyncio.coroutine
     def destroy(self, token):
-        """Destroy a token
+        """Destroy a token.
 
         Parameters:
-            token (Token): the Token id to update
+            token (Token): token or id to delete
         Returns:
-            bool: yes or no if it was destroyed
+            bool: ``True``, it was destroyed
         """
         path = 'acl/destroy/%s' % extract_id(token)
         response = yield from self.client.put(path)
-        return response.status == 200
+        return (yield from response.json())
 
     @asyncio.coroutine
     def get(self, token):
-        """Destroy a token
+        """Get a token.
+
+        The result can be used as a token into :py:class:`Consul` instances.
 
         Parameters:
-            token (Token): the Token id to update
+            token (Token): token or id
         Returns:
-            Token: The Token instance
+            Token: token instance
+        Raises:
+            NotFound: token was not found
         """
         path = 'acl/info/%s' % extract_id(token)
         response = yield from self.client.get(path)
@@ -166,28 +164,44 @@ class ACLEndpoint:
             raise self.NotFound('Token %s was not found' % token)
 
     @asyncio.coroutine
-    def clone(self, token):
-        """Clone a token
+    def clone(self, token, *, obj=False):
+        """Clone a token.
+
+        The result can be used as a token into :py:class:`Consul` instances.
 
         Parameters:
-            acl (Token): the Token id to update
+            token (Token): token or id to clone
+            obj (bool): must returns a :class:`Token` instance
+                        at the cost of additional http queries.
         Returns:
-            str: The id of the new Token clone
+            str | Token: id or :class:`Token`, depending of `obj` parameter.
         """
-        path = 'acl/info/%s' % extract_id(token)
+        path = 'acl/clone/%s' % extract_id(token)
         response = yield from self.client.put(path)
-        return (yield from response.json())['ID']
+        return (yield from self._parse_put_token(response, obj))
+
+    @asyncio.coroutine
+    def _parse_put_token(self, response, obj=False):
+        """Parse a response, and fetch object, or not!
+
+        Internal purpose only"""
+        token_id = (yield from response.json())['ID']
+        if obj:
+            return (yield from self.get(token_id))
+        else:
+            return token_id
 
     @asyncio.coroutine
     def items(self):
         """Returns a set of all Token.
 
         Returns:
-            set: A set of :class:`Token` instances
+            DataSet: set of :class:`Token` instances
         """
         path = 'acl/list'
         response = yield from self.client.get(path)
-        return [decode(data) for data in (yield from response.json())]
+        values = {decode(data) for data in (yield from response.json())}
+        return render(values, response=response)
 
     delete = destroy
 

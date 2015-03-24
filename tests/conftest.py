@@ -1,12 +1,16 @@
 import asyncio
 import json
+import logging
 import os
 import os.path
 import pytest
+import sys
 from aioconsul import Consul
 from functools import wraps
 from subprocess import Popen, PIPE
 from time import sleep
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 

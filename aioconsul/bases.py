@@ -1,9 +1,8 @@
 import logging
 from collections import namedtuple
 
-__all__ = ['Token', 'Rule', 'Check', 'Event', 'Member',
-           'Node', 'Service', 'NodeService', 'Session',
-           'DataSet', 'DataMapping', 'Key']
+__all__ = ['Token', 'Rule', 'Check', 'Event', 'Member', 'Node',
+           'Service', 'NodeService', 'Session', 'Key']
 
 log = logging.getLogger(__name__)
 
@@ -93,6 +92,12 @@ class Check:
         self.service_name = service_name
         self.node = node
 
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
+
     def __repr__(self):
         return '<Check(id=%r, name=%r)>' % (self.id, self.name)
 
@@ -110,9 +115,8 @@ class Event(object):
         l_time (str): l_time
     """
 
-    def __init__(self, name, *, id=None, payload=None,
-                 node_filter=None, service_filter=None, tag_filter=None,
-                 version=None, l_time=None):
+    def __init__(self, name, *, id=None, payload=None, service_filter=None,
+                 node_filter=None, tag_filter=None, version=None, l_time=None):
         self.id = id
         self.name = name
         self.payload = payload
@@ -132,51 +136,10 @@ class Event(object):
         return '<Event(id=%r, name=%r)>' % (self.id, self.name)
 
 
-class Member:
-    """
-    Attributes:
-        name (str): name
-        address (str): address
-        port (int): port
-        status (int): status
-        tags (dict): tags
-        delegate_cur (int): delegate current
-        delegate_max (int): delegate maximum
-        delegate_min (int): delegate mininum
-        protocol_cur (int): protocol current
-        protocol_max (int): protocol maximum
-        protocol_min (int): protocol mininum
-    """
-
-    def __init__(self, name, address, port, **opts):
-        self.name = name
-        self.address = address
-        self.port = port
-        self.status = opts.get('status')
-        self.tags = opts.get('tags')
-        self.delegate_cur = opts.get('delegate_cur')
-        self.delegate_max = opts.get('delegate_max')
-        self.delegate_min = opts.get('delegate_min')
-        self.protocol_cur = opts.get('protocol_cur')
-        self.protocol_max = opts.get('protocol_max')
-        self.protocol_min = opts.get('protocol_min')
-
-    def __eq__(self, other):
-        return self.name == other.name
-
-    def __hash__(self):
-        return hash(self.name)
-
-    def __str__(self):
-        return str(self.name)
-
-    def __repr__(self):
-        return '<Member(name=%r, address=%r, port=%r)>' % (
-            self.name, self.address, self.port)
-
-
 class Node:
     """
+    Node as exposed by :class:`~aioconsul.CatalogEndpoint`.
+
     Attributes:
         name (str): name
         address (str): address
@@ -206,6 +169,50 @@ class Node:
         return '<Node(name=%r)>' % self.name
 
 
+class Member(Node):
+    """
+    Node as exposed by :class:`~aioconsul.AgentEndpoint`.
+
+    Attributes:
+        name (str): name
+        address (str): address
+        port (int): port
+        status (int): status
+        tags (dict): tags
+        delegate_cur (int): delegate current
+        delegate_max (int): delegate maximum
+        delegate_min (int): delegate mininum
+        protocol_cur (int): protocol current
+        protocol_max (int): protocol maximum
+        protocol_min (int): protocol mininum
+    """
+
+    def __init__(self, name, address, port, **opts):
+        Node.__init__(self, name, address)
+        self.port = port
+        self.status = opts.get('status')
+        self.tags = opts.get('tags')
+        self.delegate_cur = opts.get('delegate_cur')
+        self.delegate_max = opts.get('delegate_max')
+        self.delegate_min = opts.get('delegate_min')
+        self.protocol_cur = opts.get('protocol_cur')
+        self.protocol_max = opts.get('protocol_max')
+        self.protocol_min = opts.get('protocol_min')
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __str__(self):
+        return str(self.name)
+
+    def __repr__(self):
+        return '<Member(name=%r, address=%r, port=%r)>' % (
+            self.name, self.address, self.port)
+
+
 class Service:
     """
     Attributes:
@@ -231,7 +238,7 @@ class Service:
 
 
 class NodeService(Service):
-    """A service that belongs to a node.
+    """A service that belongs to a :class:`Node`.
 
     Attributes:
         id (str): id
@@ -277,36 +284,6 @@ class Session:
 
     def __repr__(self):
         return '<Session(id=%r)>' % self.id
-
-
-class DataMapping(dict):
-    """
-    Just a `dict` that holds response headers.
-
-    Attributes:
-        modify_index (int): modify index
-        last_contact (str): last contact
-    """
-    
-    def __init__(self, values, *, modify_index=None, last_contact=None):
-        super(DataMapping, self).__init__(values)
-        self.modify_index = modify_index
-        self.last_contact = last_contact
-
-
-class DataSet(set):
-    """
-    Just a `set` that holds response headers.
-
-    Attributes:
-        modify_index (int): modify index
-        last_contact (str): last contact
-    """
-    
-    def __init__(self, values, *, modify_index=None, last_contact=None):
-        super(DataSet, self).__init__(values)
-        self.modify_index = modify_index
-        self.last_contact = last_contact
 
 
 class Key:

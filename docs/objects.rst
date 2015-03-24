@@ -4,6 +4,10 @@
 Objects
 =======
 
+
+Consul objects
+--------------
+
 .. autoclass:: aioconsul.Member
    :members:
    :undoc-members:
@@ -40,14 +44,18 @@ Objects
    :members:
    :undoc-members:
 
+.. autoclass:: aioconsul.Key
+   :members:
+   :undoc-members:
+
+
+Data collections
+----------------
+
 .. autoclass:: aioconsul.DataSet
    :members:
    :undoc-members:
 
 .. autoclass:: aioconsul.DataMapping
-   :members:
-   :undoc-members:
-
-.. autoclass:: aioconsul.Key
    :members:
    :undoc-members:
