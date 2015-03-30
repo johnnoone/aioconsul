@@ -16,7 +16,7 @@ setup(
     packages=[
         'aioconsul'
     ],
-    keywords = [
+    keywords=[
         'infrastructure',
         'asyncio',
         'service discovery',

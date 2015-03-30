@@ -272,6 +272,14 @@ Tests rely on Consul_ binary and `py.test`_.
     py.test --cov-report html --cov aioconsul tests
 
 
+Publish to pypi
+---------------
+
+::
+
+    python setup.py sdist bdist_wheel upload
+
+
 Credits
 -------
 
