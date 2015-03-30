@@ -198,7 +198,7 @@ class ACLEndpoint:
         """Returns a set of all Token.
 
         Returns:
-            DataSet: set of :class:`Token` instances
+            ConsulSet: set of :class:`Token` instances
         """
         path = 'acl/list'
         response = yield from self.client.get(path)

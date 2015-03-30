@@ -1,7 +1,8 @@
 from .client import Consul
 from .bases import *  # noqa
 from .exceptions import ACLPermissionDenied, ValidationError
-from .response import DataSet, DataMapping
+from .meta import ConsulMeta
+from .types import ConsulMapping, ConsulSet, ConsulString
 from .v1 import *  # noqa
 
 __all__ = ['ACLPermissionDenied', 'Consul', 'ValidationError']
@@ -17,7 +18,7 @@ __all__ += [
 ]
 
 __all__ += [
-    'DataSet', 'DataMapping'
+    'ConsulMapping', 'ConsulSet', 'ConsulString'
 ]
 
 __version__ = '0.3'

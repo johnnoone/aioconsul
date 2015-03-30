@@ -1,51 +1,8 @@
 import json
+from aioconsul.meta import ConsulMeta
+from aioconsul.types import ConsulMapping, ConsulSet
 
-__all__ = ['ConsulMeta', 'DataMapping', 'DataSet', 'render']
-
-
-class ConsulMeta:
-    """
-    Attributes:
-        last_index (int): modify index
-        last_contact (int): last contact
-        known_leader (bool): leader was known while requesting data
-    """
-
-    def __init__(self, *, last_index=None, last_contact=None,
-                 known_leader=None):
-        self.last_index = last_index
-        self.last_contact = last_contact
-        self.known_leader = known_leader
-
-
-class DataMapping(dict, ConsulMeta):
-    """
-    Just a `dict` that holds response headers.
-
-    Attributes:
-        last_index (int): modify index
-        last_contact (str): last contact
-        known_leader (bool): leader was known while requesting data
-    """
-
-    def __init__(self, values, **params):
-        super(DataMapping, self).__init__(values)
-        ConsulMeta.__init__(self, **params)
-
-
-class DataSet(set, ConsulMeta):
-    """
-    Just a `set` that holds response headers.
-
-    Attributes:
-        last_index (int): modify index
-        last_contact (str): last contact
-        known_leader (bool): leader was known while requesting data
-    """
-
-    def __init__(self, values, **params):
-        super(DataSet, self).__init__(values)
-        ConsulMeta.__init__(self, **params)
+__all__ = ['ConsulMeta', 'render']
 
 
 def render(values, *, response):
@@ -58,6 +15,8 @@ def render(values, *, response):
     )
 
     if isinstance(values, dict):
-        return DataMapping(values, **meta)
+        values = ConsulMapping(values)
     else:
-        return DataSet(values, **meta)
+        values = ConsulSet(values)
+    values.consul = ConsulMeta(**meta)
+    return values

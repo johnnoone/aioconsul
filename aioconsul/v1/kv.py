@@ -5,6 +5,7 @@ from aioconsul.bases import Key
 from aioconsul.response import render
 from aioconsul.util import extract_id
 from aioconsul.exceptions import HTTPError
+from aioconsul.types import ConsulString
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ class KVEndpoint:
             path (str): the key to fetch
             separator (str): everything until
         Returns:
-            DataSet: a set of :class:`Key`
+            ConsulSet: a set of :class:`Key`
         """
         fullpath = 'kv/%s' % path
         params = {
@@ -131,6 +132,9 @@ class KVEndpoint:
             bool: succeed
         """
         fullpath = 'kv/%s' % path
+        if cas:
+            cas = getattr(cas, 'modify_index', cas)
+            cas = getattr(cas, 'last_index', cas)
         params = {
             'dc': self.dc,
             'flags': flags,
@@ -152,6 +156,9 @@ class KVEndpoint:
             bool: succeed
         """
         fullpath = 'kv/%s' % path
+        if cas:
+            cas = getattr(cas, 'modify_index', cas)
+            cas = getattr(cas, 'last_index', cas)
         params = {
             'dc': self.dc,
             'recurse': recurse,
@@ -159,7 +166,7 @@ class KVEndpoint:
         }
         response = yield from self.client.delete(fullpath,
                                                  params=params)
-        return response.status == 200
+        return (yield from response.json())
 
     @asyncio.coroutine
     def get(self, path):
@@ -196,7 +203,7 @@ class KVEndpoint:
             path (str): prefix to check
 
         Returns:
-            DataMapping: mapping of key names - values
+            ConsulMapping: mapping of key names - values
         """
         path = '/kv/%s' % path
         params = {'dc': self.dc,
@@ -209,15 +216,6 @@ class KVEndpoint:
         return render(values, response=response)
 
     __call__ = items
-
-
-class ConsulString(str):
-
-    def __new__(cls, *args, consul, **kwargs):
-        return str.__new__(cls, *args, **kwargs)
-
-    def __init__(self, *args, consul, **kwargs):
-        self.consul = consul
 
 
 def encode(obj):
@@ -237,4 +235,6 @@ def decode(data, base64=True):
     value = data['Value']
     if base64:
         value = b64decode(value).decode('utf-8')
-    return ConsulString(value, consul=key)
+    value = ConsulString(value)
+    value.consul = key
+    return value

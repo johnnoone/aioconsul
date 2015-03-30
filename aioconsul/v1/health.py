@@ -28,7 +28,7 @@ class HealthEndpoint:
             tag (str): service tag
             state (str): ``passing`` or ``any``
         Returns:
-            DataSet: set of :class:`Node` instances
+            ConsulSet: set of :class:`Node` instances
         """
         path = '/health/service/%s' % extract_id(service)
         params = {'dc': dc,
@@ -63,7 +63,7 @@ class HealthEndpoint:
             state (str): check state
             dc (str): datacenter name
         Returns:
-            DataSet: set of :class:`Check` instances
+            ConsulSet: set of :class:`Check` instances
         Raises:
             ValidationError: an error occured
         """

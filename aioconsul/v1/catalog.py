@@ -229,7 +229,7 @@ class CatalogEndpoint:
             service (Service): service or id
             tag (str): tag of service
         Returns:
-            DataSet: set of :class:`Node` instances
+            ConsulSet: set of :class:`Node` instances
         Raises:
             ValidationError: an error occured
         """

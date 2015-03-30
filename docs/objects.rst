@@ -49,13 +49,19 @@ Consul objects
    :undoc-members:
 
 
-Data collections
-----------------
+Meta & types
+------------
 
-.. autoclass:: aioconsul.DataSet
-   :members:
-   :undoc-members:
+Most of responses are objects that implements a consul attributes.
 
-.. autoclass:: aioconsul.DataMapping
+.. autoclass:: aioconsul.ConsulMeta
    :members:
-   :undoc-members:
+
+.. autoclass:: aioconsul.ConsulSet
+   :members:
+
+.. autoclass:: aioconsul.ConsulMapping
+   :members:
+
+.. autoclass:: aioconsul.ConsulString
+   :members:

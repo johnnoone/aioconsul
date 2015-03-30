@@ -1,0 +1,9 @@
+{
+  "service": {
+    "name": "my-service",
+    "tags": ["master"],
+    "address": "127.0.0.1",
+    "port": 6379,
+    "checks": []
+  }
+}

@@ -33,9 +33,9 @@ def test_keys():
     keys = yield from client.kv.keys('')
     for key in fixtures.keys():
         assert key in fixtures.keys()
-    assert keys.modify_index
+    assert keys.consul.modify_index
 
     keys = yield from client.kv.keys('b', separator='/')
     for key in keys:
         assert key in {'baz', 'bar', 'bar/'}
-    assert keys.modify_index
+    assert keys.consul.modify_index

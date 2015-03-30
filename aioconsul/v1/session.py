@@ -123,7 +123,7 @@ class SessionEndpoint:
         Parameters:
             node (Node): filter this node
         Returns:
-            DataSet: a set of :class:`~aioconsul.Session`
+            ConsulSet: a set of :class:`~aioconsul.Session`
         """
         if node:
             path = '/session/node/%s' % extract_id(node)

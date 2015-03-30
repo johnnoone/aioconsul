@@ -303,6 +303,11 @@ class Key:
         self.modify_index = modify_index
         self.lock_index = lock_index
 
+    @property
+    def last_index(self):
+        # Alias of modify_index
+        return self.modify_index
+
     def __eq__(self, other):
         return self.name == other.name
 
