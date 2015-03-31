@@ -18,3 +18,6 @@ class ConsulMeta:
     def modify_index(self):
         # alias of last_index
         return self.last_index
+
+    def __repr__(self):
+        return '<ConsulMeta(last_index=%r)>' % self.last_index

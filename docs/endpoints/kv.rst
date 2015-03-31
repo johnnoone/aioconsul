@@ -5,7 +5,9 @@ KV
 ==
 
 The KV endpoint is used to access Consul's simple key/value store, useful for
-storing service configuration or other metadata.
+storing service configuration or other metadata. Almost every methods returns
+:ref:`asyncio.Tasks`, and results and exceptions implements a `consul`
+attribute which holds `meta data`_.
 
 Simple usage
 ------------
@@ -49,7 +51,9 @@ Consul allows to acquire/release keys, with a session has returned by the :ref:`
 Meta data
 ---------
 
-Meta data are stored into the `consul`attribute of returned objects::
+Meta holds some informations, like last_index...
+
+They are stored into the `consul` attribute of returned objects::
 
     >>> value = yield from client.kv.get('my/key')
     >>> meta = value.consul  # key meta
@@ -59,7 +63,10 @@ Or::
     >>> keys = yield from client.kv.keys('foo/')
     >>> meta = keys.consul  # headers meta
 
-Meta holds some informations, like last_index...
+They can also be fetched via the :meth:`~aioconsul.KVEndpoint.meta` method::
+
+    >>> meta = yield from client.kv.meta('my/key')
+    >>> meta = yield from client.kv.meta(prefix='my/prefix')
 
 
 Playing with CAS
@@ -83,12 +90,12 @@ Watch
 
 AIOConsul implements key watching::
 
-    >>> future = yield from client.kv.watch('my/key')
+    >>> future = client.kv.get('my/key' watch=meta)
     >>> future.add_done_callback(fun)
 
-Optionally, passing a previous meta, it may be resolved asap::
+And prefix watching::
 
-    >>> future = yield from client.kv.watch('my/key', index=meta)
+    >>> future = client.kv.items('my/key', watch=meta)
     >>> future.add_done_callback(fun)
 
 

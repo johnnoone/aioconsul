@@ -10,10 +10,11 @@ logger = logging.getLogger(__name__)
 
 class AgentEndpoint:
 
-    def __init__(self, client):
+    def __init__(self, client, *, loop=None):
         self.client = client
         self.checks = AgentCheckEndpoint(client)
         self.services = AgentServiceEndpoint(client)
+        self.loop = loop or asyncio.get_event_loop()
 
     @asyncio.coroutine
     def members(self):

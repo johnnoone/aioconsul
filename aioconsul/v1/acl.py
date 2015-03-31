@@ -3,7 +3,7 @@ import json
 import logging
 from collections import defaultdict
 from aioconsul.bases import Token, Rule
-from aioconsul.exceptions import ACLSupportDisabled, HTTPError
+from aioconsul.exceptions import ACLSupportDisabled
 from aioconsul.request import RequestWrapper
 from aioconsul.response import render
 from aioconsul.util import extract_id
@@ -27,16 +27,14 @@ class SupportedClient(RequestWrapper):
         if self.obj.supported is False:
             raise ACLSupportDisabled()
 
-        try:
-            response = yield from self.client.request(method, path, **kwargs)
-            self.obj.supported = True
-            return response
-        except HTTPError as error:
-            if error.status in (401, 403):
-                if self.obj.supported is None:
-                    self.obj.supported = False
-                raise ACLSupportDisabled(str(error))
-            raise
+        response = yield from self.client.request(method, path, **kwargs)
+        if response.status in (401, 403):
+            if self.obj.supported is None:
+                self.obj.supported = False
+            body = yield from response.text()
+            raise ACLSupportDisabled(body)
+        self.obj.supported = True
+        return response
 
 
 class ACLEndpoint:
@@ -52,9 +50,10 @@ class ACLEndpoint:
         """Raises when a token was not found."""
         pass
 
-    def __init__(self, client, supported=None):
+    def __init__(self, client, *, loop=None, supported=None):
         self.supported = supported
         self.client = SupportedClient(client, self)
+        self.loop = loop or asyncio.get_event_loop()
 
     @asyncio.coroutine
     def is_supported(self):

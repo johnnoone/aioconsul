@@ -13,8 +13,9 @@ class AgentServiceEndpoint:
     class NotFound(ValueError):
         """Raised when service was not found"""
 
-    def __init__(self, client):
+    def __init__(self, client, *, loop=None):
         self.client = client
+        self.loop = loop or asyncio.get_event_loop()
 
     @asyncio.coroutine
     def items(self):
@@ -143,18 +144,17 @@ class AgentServiceEndpoint:
             elif 'Script' in c or 'HTTP' in c:
                 raise ValidationError('Interval is mandatory')
 
-        try:
-            response = yield from self.client.put(path, data=json.dumps(data))
-            if response.status == 200:
-                return NodeService(id=id or name,
-                                   name=name,
-                                   tags=tags,
-                                   address=address,
-                                   port=port)
-        except HTTPError as error:
-            if error.status == 400:
-                raise ValidationError(str(error))
-            raise
+        response = yield from self.client.put(path, data=json.dumps(data))
+        if response.status == 200:
+            return NodeService(id=id or name,
+                               name=name,
+                               tags=tags,
+                               address=address,
+                               port=port)
+        msg = yield from response.text()
+        if response.status == 400:
+            raise ValidationError(msg)
+        raise HTTPError(msg, response.status)
 
     @asyncio.coroutine
     def deregister(self, service):

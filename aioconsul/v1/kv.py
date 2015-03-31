@@ -2,9 +2,9 @@ import asyncio
 import copy
 import logging
 from aioconsul.bases import Key
-from aioconsul.response import render
+from aioconsul.response import render, render_meta
 from aioconsul.util import extract_id, extract_ref
-from aioconsul.exceptions import HTTPError
+from aioconsul.exceptions import ValidationError, ACLPermissionDenied, HTTPError
 from aioconsul.types import ConsulString
 
 logger = logging.getLogger(__name__)
@@ -20,9 +20,10 @@ class KVEndpoint:
         """Raised when a key was not found."""
         pass
 
-    def __init__(self, client, dc=None):
+    def __init__(self, client, *, loop=None, dc=None):
         self.client = client
         self.dc = dc
+        self.loop = loop or asyncio.get_event_loop()
 
     def dc(self, name):
         """
@@ -37,28 +38,33 @@ class KVEndpoint:
         instance.dc = name
         return instance
 
-    @asyncio.coroutine
-    def keys(self, path, *, separator=None):
+    def keys(self, prefix, *, separator=None):
         """Returns all keys that starts with path
 
         Parameters:
-            path (str): the key to fetch
+            prefix (str): the prefix to fetch
             separator (str): everything until
         Returns:
             ConsulSet: a set of :class:`Key`
         """
-        fullpath = 'kv/%s' % path
+        path = 'kv/%s' % prefix
         params = {
             'dc': self.dc,
             'keys': True,
             'separator': separator
         }
-        response = yield from self.client.get(fullpath, params=params)
-        values = yield from response.json()
-        return render(values, response=response)
+        
+        @asyncio.coroutine
+        def run(path, params, client):
+            response = yield from client.get(path, params=params)
+            if response.status == 200:
+                values = yield from response.json()
+                return render(values, response=response)
+            yield from fail(response)
+        return asyncio.async(run(path, params, self.client), loop=self.loop)
 
     @asyncio.coroutine
-    def acquire(self, path, *, session):
+    def acquire(self, key, *, session):
         """Acquire a key
 
         Parameters:
@@ -68,17 +74,18 @@ class KVEndpoint:
         Returns:
             bool: key has been acquired
         """
-        fullpath = 'kv/%s' % path
+        path = 'kv/%s' % key
         params = {
             'dc': self.dc,
             'acquire': extract_id(session)
         }
-        response = yield from self.client.put(fullpath,
-                                              params=params)
-        return (yield from response.json())
+        response = yield from self.client.put(path, params=params)
+        if response.status == 200:
+            return (yield from response.json())
+        yield from fail(response)
 
     @asyncio.coroutine
-    def release(self, path, *, session):
+    def release(self, key, *, session):
         """Release a key
 
         Parameters:
@@ -87,17 +94,18 @@ class KVEndpoint:
         Returns:
             bool: key has been released
         """
-        fullpath = 'kv/%s' % path
+        path = 'kv/%s' % key
         params = {
             'dc': self.dc,
             'release': extract_id(session)
         }
-        response = yield from self.client.put(fullpath,
-                                              params=params)
-        return (yield from response.json())
+        response = yield from self.client.put(path, params=params)
+        if response.status == 200:
+            return (yield from response.json())
+        yield from fail(response)
 
     @asyncio.coroutine
-    def set(self, path, obj, *, cas=None):
+    def set(self, key, obj, *, cas=None):
         """Sets a key - obj
 
         If CAS is providen, then it will acts as a Check and Set.
@@ -111,10 +119,10 @@ class KVEndpoint:
             bool: value has been setted
         """
         value, flags = encode(obj)
-        return (yield from self.put(path, value, flags=flags, cas=cas))
+        return self.put(key, value, flags=flags, cas=cas)
 
     @asyncio.coroutine
-    def put(self, path, value, *, flags=None, cas=None):
+    def put(self, key, value, *, flags=None, cas=None):
         """Sets a key - value (lowlevel)
 
         If the cas parameter is set, Consul will only put the key if it does
@@ -131,7 +139,7 @@ class KVEndpoint:
         Returns:
             bool: succeed
         """
-        fullpath = 'kv/%s' % path
+        path = 'kv/%s' % key
         if cas:
             cas = extract_ref(cas)
 
@@ -140,10 +148,18 @@ class KVEndpoint:
             'flags': flags,
             'cas': cas
         }
-        response = yield from self.client.put(fullpath,
-                                              params=params,
-                                              data=value)
-        return (yield from response.json())
+
+        @asyncio.coroutine
+        def run(client):
+            """docstring for run"""
+            response = yield from client.put(path,
+                                             params=params,
+                                             data=value)
+            if response.status == 200:
+                return (yield from response.json())
+            yield from fail(response)
+
+        return asyncio.async(run(self.client), loop=self.loop)
 
     def delete(self, path, *, recurse=None, cas=None):
         """Deletes one or many keys.
@@ -163,12 +179,47 @@ class KVEndpoint:
             'recurse': recurse,
             'cas': cas
         }
-        response = yield from self.client.delete(fullpath,
-                                                 params=params)
-        return (yield from response.json())
 
-    @asyncio.coroutine
-    def get(self, path):
+        @asyncio.coroutine
+        def run(client):
+            response = yield from client.delete(fullpath, params=params)
+            if response.status == 200:
+                return (yield from response.json())
+            yield from fail(response)
+        return asyncio.async(run(self.client), loop=self.loop)
+
+    def meta(self, key=None, *, prefix=None):
+        """Returns the meta of a key, or a prefix
+
+        Parameters:
+            key (str): look this key
+            prefix (str): look this prefix
+        Returns:
+            ConsulMeta: meta of this path
+        """
+
+        if key and prefix:
+            raise ValidationError('key and prefix are mutually exclusive')
+
+        elif key:
+            path = '/kv/%s' % key
+            recursive = None
+        elif prefix:
+            path = '/kv/%s' % prefix
+            recursive = True
+        else:
+            raise ValidationError('key or prefix required')
+
+        params = {'dc': self.dc,
+                  'recursive': recursive}
+
+        @asyncio.coroutine
+        def run(client):
+            response = yield from client.get(path, params=params)
+            return render_meta(response)
+        return asyncio.async(run(self.client), loop=self.loop)
+
+    def get(self, key, *, watch=None):
         """Fetch one value
 
         The returned object has a special attribute named
@@ -176,23 +227,42 @@ class KVEndpoint:
 
         Parameters:
             path (str): exact match
+            watch (int): the index to watch
         Returns:
             object: The value corresponding to key.
         Raises:
             NotFound: key was not found
         """
-        fullpath = '/kv/%s' % path
-        params = {'dc': self.dc}
-        try:
-            response = yield from self.client.get(fullpath, params=params)
-            for item in (yield from response.json()):
-                return decode(item)
-        except HTTPError as error:
-            if error.status == 404:
-                raise self.NotFound('Key %r was not found' % path)
 
-    @asyncio.coroutine
-    def items(self, path):
+        path = '/kv/%s' % key
+        params = {'dc': self.dc}
+        index = None
+        if watch not in (None, True, False):
+            index = extract_ref(watch)
+            params.update({
+                'index': extract_ref(watch),
+                'wait': '10m'
+            })
+
+        @asyncio.coroutine
+        def run(path, params, client):
+            while True:
+                response = yield from client.get(path, params=params)
+                meta = render_meta(response)
+                if index == meta.last_index:
+                    continue
+                elif response.status == 200:
+                    for item in (yield from response.json()):
+                        return decode(item)
+                elif response.status == 404:
+                    err = self.NotFound('Key %r was not found' % path)
+                    err.consul = render_meta(response)
+                    raise err
+                yield from fail(response)
+
+        return asyncio.async(run(path, params, self.client), loop=self.loop)
+
+    def items(self, path, watch=None):
         """Fetch values by prefix
 
         The returned objects has a special attribute named
@@ -203,66 +273,26 @@ class KVEndpoint:
         Returns:
             ConsulMapping: mapping of key names - values
         """
+
         path = '/kv/%s' % path
         params = {'dc': self.dc,
                   'recurse': True}
-        response = yield from self.client.get(path, params=params)
-        data = yield from response.json()
-        logger.info('%s %s', data, response.headers)
-        values = {item['Key']: decode(item) for item in data}
-
-        return render(values, response=response)
-
-    __call__ = items
-
-    def watch(self, path, *, index=None):
-        """Wait for a key modification.
-
-        The the future response is the same as :meth:`get` method.
-
-        Parameters:
-            path (str): prefix to check
-            index (int): index to check
-        Returns:
-            asyncio.Future: promise
-        Raises:
-            NotFound: key has been deleted
-        """
-
-        if index:
-            index = extract_ref(index)
+        if watch not in (None, True, False):
+            params.update({'index': extract_ref(watch),
+                           'watch': '10m'})
 
         @asyncio.coroutine
-        def run(path, index):
-            fullpath = 'kv/%s' % path
-            params = {'dc': self.dc}
-            while True:
-                params.update({
-                    'index': index,
-                    'wait': '10m'
-                })
-                try:
-                    response = yield from self.client.get(fullpath,
-                                                          params=params)
-                    got = int(response.headers.get('X-Consul-Index', None))
-                    if index in (None, got):
-                        index = got
-                        continue
-                    break
-                except HTTPError as error:
-                    if error.status == 404:
-                        got = int(error.headers.get('X-Consul-Index', None))
-                        if index in (None, got):
-                            index = got
-                            continue
-                        raise self.NotFound('Key %r has been deleted' % path)
-                    else:
-                        raise error
+        def run(path, params, client):
+            response = yield from client.get(path, params=params)
+            if response.status == 200:
+                data = yield from response.json()
+                values = {item['Key']: decode(item) for item in data}
+                return render(values, response=response)
+            yield from fail(response)
+            
+        return asyncio.async(run(path, params, self.client), loop=self.loop)
 
-            data = yield from response.json()
-            return decode(data.pop())
-
-        return asyncio.Task(run(path, index))
+    __call__ = items
 
 
 def encode(obj):
@@ -285,3 +315,14 @@ def decode(data, base64=True):
     value = ConsulString(value)
     value.consul = key
     return value
+
+
+@asyncio.coroutine
+def fail(response):
+    msg = yield from response.text()
+    if response.status in (401, 403):
+        err = ACLPermissionDenied(msg)
+    else:
+        err = HTTPError(msg, response.status)
+    err.consul = render_meta(response)
+    raise err

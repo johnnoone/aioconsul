@@ -20,9 +20,10 @@ class CatalogEndpoint:
         """Raised when a node was not found."""
         pass
 
-    def __init__(self, client, dc=None):
+    def __init__(self, client, *, loop=None, dc=None):
         self.client = client
         self.dc = dc
+        self.loop = loop or asyncio.get_event_loop()
 
     def dc(self, name):
         """

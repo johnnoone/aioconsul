@@ -9,8 +9,9 @@ class AgentCheckEndpoint:
     class NotFound(ValueError):
         """Raised when check was not found"""
 
-    def __init__(self, client):
+    def __init__(self, client, *, loop=None):
         self.client = client
+        self.loop = loop or asyncio.get_event_loop()
 
     @asyncio.coroutine
     def items(self):

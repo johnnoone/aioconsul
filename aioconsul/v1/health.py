@@ -10,8 +10,9 @@ logger = logging.getLogger(__name__)
 
 class HealthEndpoint:
 
-    def __init__(self, client):
+    def __init__(self, client, *, loop=None):
         self.client = client
+        self.loop = loop or asyncio.get_event_loop()
 
     @asyncio.coroutine
     def nodes(self, service, *, dc=None, tag=None, state=None):

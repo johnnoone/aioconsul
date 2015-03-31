@@ -19,7 +19,7 @@ class Consul(RequestWrapper):
         consistency (str): default, consistent or stale
     """
 
-    def __init__(self, host=None, *, token=None, consistency=None):
+    def __init__(self, host=None, *, token=None, consistency=None, loop=None):
         host = str(host or 'http://127.0.0.1:8500').rstrip('/')
         if isinstance(token, Token):
             token = token.id
@@ -27,13 +27,15 @@ class Consul(RequestWrapper):
                                  consistency=consistency)
         RequestWrapper.__init__(self, handler)
 
-        self.acl = v1.ACLEndpoint(self.req_handler)
-        self.agent = v1.AgentEndpoint(self.req_handler)
-        self.catalog = v1.CatalogEndpoint(self.req_handler)
-        self.events = v1.EventEndpoint(self.req_handler)
-        self.health = v1.HealthEndpoint(self.req_handler)
-        self.kv = v1.KVEndpoint(self.req_handler)
-        self.sessions = v1.SessionEndpoint(self.req_handler)
+        self.loop = loop or asyncio.get_event_loop()
+
+        self.acl = v1.ACLEndpoint(self.req_handler, loop=self.loop)
+        self.agent = v1.AgentEndpoint(self.req_handler, loop=self.loop)
+        self.catalog = v1.CatalogEndpoint(self.req_handler, loop=self.loop)
+        self.events = v1.EventEndpoint(self.req_handler, loop=self.loop)
+        self.health = v1.HealthEndpoint(self.req_handler, loop=self.loop)
+        self.kv = v1.KVEndpoint(self.req_handler, loop=self.loop)
+        self.sessions = v1.SessionEndpoint(self.req_handler, loop=self.loop)
 
     @property
     def host(self):

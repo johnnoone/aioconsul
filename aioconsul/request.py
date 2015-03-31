@@ -1,7 +1,6 @@
 import aiohttp
 import asyncio
 import logging
-from .exceptions import ACLPermissionDenied, HTTPError, UnknownLeader
 
 
 log = logging.getLogger(__name__)
@@ -78,32 +77,10 @@ class RequestHandler:
         response = yield from aiohttp.request(method, url, **kwargs)
 
         if response.status == 200:
-            log.info('%s %s %s %s %s',
-                     response.status, method, url, kwargs, response.headers)
-            return response
-
-        headers = response.headers
-        body = yield from response.text()
-
-        log.warn('%s %s %s %s %s', response.status, method, url, body, kwargs)
-
-        if headers.get('X-Consul-KnownLeader', None) == 'false':
-            raise UnknownLeader(response.status,
-                                body,
-                                url,
-                                data=kwargs,
-                                headers=response.headers)
-
-        if response.status == 403:
-            raise ACLPermissionDenied(response.status,
-                                      body,
-                                      url,
-                                      data=kwargs,
-                                      headers=response.headers)
-
-        raise HTTPError(response.status, body, url,
-                        data=kwargs,
-                        headers=response.headers)
+            log.info('%s %s %s %s', response.status, method, url, kwargs)
+        else:
+            log.warn('%s %s %s %s', response.status, method, url, kwargs)
+        return response
 
 
 class RequestWrapper:
