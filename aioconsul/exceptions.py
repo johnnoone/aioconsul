@@ -10,10 +10,11 @@ class ClientError(Exception):
 
 class HTTPError(ClientError):
 
-    def __init__(self, status, msg, url, data):
+    def __init__(self, status, msg, url, data, headers):
         self.status = status
         self.url = url
         self.data = data
+        self.headers = headers
         ClientError.__init__(self, msg)
 
 

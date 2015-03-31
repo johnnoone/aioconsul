@@ -88,12 +88,22 @@ class RequestHandler:
         log.warn('%s %s %s %s %s', response.status, method, url, body, kwargs)
 
         if headers.get('X-Consul-KnownLeader', None) == 'false':
-            raise UnknownLeader(response.status, body, url, data=kwargs)
+            raise UnknownLeader(response.status,
+                                body,
+                                url,
+                                data=kwargs,
+                                headers=response.headers)
 
         if response.status == 403:
-            raise ACLPermissionDenied(response.status, body, url, data=kwargs)
+            raise ACLPermissionDenied(response.status,
+                                      body,
+                                      url,
+                                      data=kwargs,
+                                      headers=response.headers)
 
-        raise HTTPError(response.status, body, url, data=kwargs)
+        raise HTTPError(response.status, body, url,
+                        data=kwargs,
+                        headers=response.headers)
 
 
 class RequestWrapper:

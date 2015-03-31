@@ -23,6 +23,9 @@ def async_test(f):
         loop = asyncio.get_event_loop()
         loop.run_until_complete(pre_clean())
         loop.run_until_complete(future)
+        pending = asyncio.Task.all_tasks()
+        if pending:
+            loop.run_until_complete(asyncio.wait(pending))
     return wrapper
 
 

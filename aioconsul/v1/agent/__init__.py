@@ -23,7 +23,6 @@ class AgentEndpoint:
             set: set of :class:`Member` instances
         """
         response = yield from self.client.get('/agent/members')
-        print(response.headers)
         return {decode_member(item) for item in (yield from response.json())}
 
     @asyncio.coroutine

@@ -6,6 +6,16 @@ def extract_id(obj):
     return getattr(obj, 'id', obj)
 
 
+def extract_ref(obj):
+    """Extracts ref from obj, if any.
+
+    ref can be modify_index or last_index.
+    """
+    obj = getattr(obj, 'modify_index', obj)
+    obj = getattr(obj, 'last_index', obj)
+    return obj
+
+
 def extract_name(obj):
     """Extracts name from obj, if any"""
     return getattr(obj, 'name', obj)

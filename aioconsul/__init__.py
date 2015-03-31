@@ -18,7 +18,7 @@ __all__ += [
 ]
 
 __all__ += [
-    'ConsulMapping', 'ConsulSet', 'ConsulString'
+    'ConsulMapping', 'ConsulSet', 'ConsulString', 'ConsulMeta'
 ]
 
 __version__ = '0.3'

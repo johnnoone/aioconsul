@@ -3,7 +3,7 @@ import copy
 import logging
 from aioconsul.bases import Key
 from aioconsul.response import render
-from aioconsul.util import extract_id
+from aioconsul.util import extract_id, extract_ref
 from aioconsul.exceptions import HTTPError
 from aioconsul.types import ConsulString
 
@@ -106,7 +106,7 @@ class KVEndpoint:
         Parameters:
             path (str): the key
             obj (object): any object type (will be compressed by codec)
-            cas (str): modify_index of key
+            cas (int): modify_index of key
         Returns:
             bool: value has been setted
         """
@@ -133,8 +133,8 @@ class KVEndpoint:
         """
         fullpath = 'kv/%s' % path
         if cas:
-            cas = getattr(cas, 'modify_index', cas)
-            cas = getattr(cas, 'last_index', cas)
+            cas = extract_ref(cas)
+
         params = {
             'dc': self.dc,
             'flags': flags,
@@ -151,14 +151,13 @@ class KVEndpoint:
         Parameters:
             path (str): the key to delete
             recurse (bool): delete all keys which have the specified prefix
-            cas (str): turn the delete into a Check-And-Set operation.
+            cas (int): turn the delete into a Check-And-Set operation.
         Returns:
             bool: succeed
         """
         fullpath = 'kv/%s' % path
         if cas:
-            cas = getattr(cas, 'modify_index', cas)
-            cas = getattr(cas, 'last_index', cas)
+            cas = extract_ref(cas)
         params = {
             'dc': self.dc,
             'recurse': recurse,
@@ -201,7 +200,6 @@ class KVEndpoint:
 
         Parameters:
             path (str): prefix to check
-
         Returns:
             ConsulMapping: mapping of key names - values
         """
@@ -216,6 +214,55 @@ class KVEndpoint:
         return render(values, response=response)
 
     __call__ = items
+
+    def watch(self, path, *, index=None):
+        """Wait for a key modification.
+
+        The the future response is the same as :meth:`get` method.
+
+        Parameters:
+            path (str): prefix to check
+            index (int): index to check
+        Returns:
+            asyncio.Future: promise
+        Raises:
+            NotFound: key has been deleted
+        """
+
+        if index:
+            index = extract_ref(index)
+
+        @asyncio.coroutine
+        def run(path, index):
+            fullpath = 'kv/%s' % path
+            params = {'dc': self.dc}
+            while True:
+                params.update({
+                    'index': index,
+                    'wait': '10m'
+                })
+                try:
+                    response = yield from self.client.get(fullpath,
+                                                          params=params)
+                    got = int(response.headers.get('X-Consul-Index', None))
+                    if index in (None, got):
+                        index = got
+                        continue
+                    break
+                except HTTPError as error:
+                    if error.status == 404:
+                        got = int(error.headers.get('X-Consul-Index', None))
+                        if index in (None, got):
+                            index = got
+                            continue
+                        raise self.NotFound('Key %r has been deleted' % path)
+                    else:
+                        raise error
+
+            data = yield from response.json()
+            return decode(data.pop())
+
+        return asyncio.Task(run(path, index))
 
 
 def encode(obj):
