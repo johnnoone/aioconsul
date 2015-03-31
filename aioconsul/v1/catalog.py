@@ -3,9 +3,9 @@ import copy
 import json
 import logging
 from aioconsul.bases import Check, Node, NodeService, Service
-from aioconsul.exceptions import ValidationError
-from aioconsul.response import render
-from aioconsul.util import extract_id, extract_name
+from aioconsul.exceptions import HTTPError, ValidationError
+from aioconsul.response import render, render_meta
+from aioconsul.util import extract_id, extract_name, extract_ref
 
 log = logging.getLogger(__name__)
 
@@ -39,25 +39,18 @@ class CatalogEndpoint:
         instance.dc = name
         return instance
 
-    @asyncio.coroutine
     def register_node(self, node):
         """Registers a node"""
-        response = yield from self.register(node)
-        return response
+        return self.register(node)
 
-    @asyncio.coroutine
     def register_check(self, node, *, check):
         """Registers a check"""
-        response = yield from self.register(node, check=check)
-        return response
+        return self.register(node, check=check)
 
-    @asyncio.coroutine
     def register_service(self, node, *, service):
         """Registers a service"""
-        response = yield from self.register(node, service=service)
-        return response
+        return self.register(node, service=service)
 
-    @asyncio.coroutine
     def register(self, node, *, check=None, service=None):
         """Registers to catalog"""
         path = 'catalog/register'
@@ -109,10 +102,15 @@ class CatalogEndpoint:
                 'Node': check.node or node.name,
                 'ServiceID': check.service_id
             })
-        response = yield from self.client.put(path, data=json.dumps(data))
-        return response.status == 200
 
-    @asyncio.coroutine
+        @asyncio.coroutine
+        def run(client):
+            response = yield from client.put(path, data=json.dumps(data))
+            if response.status == 200:
+                return (yield from response.json())
+
+        return asyncio.async(run(self.client), loop=self.loop)
+
     def deregister_node(self, node):
         """Deregisters a node
 
@@ -123,10 +121,8 @@ class CatalogEndpoint:
         Raises:
             ValidationError: an error occured
         """
-        response = yield from self.deregister(node)
-        return response
+        return self.deregister(node)
 
-    @asyncio.coroutine
     def deregister_check(self, node, *, check):
         """Deregisters a check
 
@@ -138,10 +134,8 @@ class CatalogEndpoint:
         Raises:
             ValidationError: an error occured
         """
-        response = yield from self.deregister(node, check=check)
-        return response
+        return self.deregister(node, check=check)
 
-    @asyncio.coroutine
     def deregister_service(self, node, *, service):
         """Deregisters a service
 
@@ -153,10 +147,8 @@ class CatalogEndpoint:
         Raises:
             ValidationError: an error occured
         """
-        response = yield from self.deregister(node, service=service)
-        return response
+        return self.deregister(node, service=service)
 
-    @asyncio.coroutine
     def deregister(self, node, *, check=None, service=None):
         """Deregisters from catalog
 
@@ -206,21 +198,29 @@ class CatalogEndpoint:
         if check and ('CheckID' not in data):
             raise ValidationError('Unable to define check')
 
-        response = yield from self.client.put(path, data=json.dumps(data))
-        return response.status == 200
+        @asyncio.coroutine
+        def run(client):
+            response = yield from client.put(path, data=json.dumps(data))
+            if response.status == 200:
+                return (yield from response.json())
 
-    @asyncio.coroutine
+        return asyncio.async(run(self.client), loop=self.loop)
+
     def datacenters(self):
         """Lists datacenters
 
         Returns:
             set: a set of datacenters
         """
-        response = yield from self.client.get('/catalog/datacenters')
-        return set((yield from response.json()))
 
-    @asyncio.coroutine
-    def nodes(self, *, service=None, tag=None):
+        @asyncio.coroutine
+        def run(client):
+            response = yield from client.get('/catalog/datacenters')
+            values = yield from response.json()
+            return render(values, response=response)
+        return asyncio.async(run(self.client), loop=self.loop)
+
+    def nodes(self, *, service=None, tag=None, watch=None):
         """Lists nodes.
 
         If service is given, :class:`Node` instances will have a special
@@ -229,26 +229,45 @@ class CatalogEndpoint:
         Parameters:
             service (Service): service or id
             tag (str): tag of service
+            watch (int): wait for changes
         Returns:
             ConsulSet: set of :class:`Node` instances
         Raises:
             ValidationError: an error occured
         """
+
+        index = None
+
         if service is not None:
             path = '/catalog/service/%s' % extract_id(service)
             params = {'dc': self.dc, 'tag': tag}
-            response = yield from self.client.get(path, params=params)
-            values = []
-            for data in (yield from response.json()):
-                node = Node(name=data.get('Node'),
-                            address=data.get('Address'))
-                node.service = NodeService(id=data.get('ServiceID'),
-                                           name=data.get('ServiceName'),
-                                           tags=data.get('ServiceTags'),
-                                           address=data.get('ServiceAddress'),
-                                           port=data.get('ServicePort'))
-                values.append(node)
-            return render(values, response=response)
+
+            @asyncio.coroutine
+            def run(client):
+                while True:
+                    response = yield from client.get(path, params=params)
+                    meta = render_meta(response)
+                    if index == meta.last_index:
+                        continue
+                    elif response.status == 200:
+                        break
+                    else:
+                        msg = yield from response.text()
+                        err = HTTPError(msg, response.status)
+                        err.consul = meta
+                        raise err
+                values = []
+                for data in (yield from response.json()):
+                    node = Node(name=data.get('Node'),
+                                address=data.get('Address'))
+                    service = NodeService(id=data.get('ServiceID'),
+                                          name=data.get('ServiceName'),
+                                          tags=data.get('ServiceTags'),
+                                          address=data.get('ServiceAddress'),
+                                          port=data.get('ServicePort'))
+                    node.service = service
+                    values.append(node)
+                return render(values, response=response)
 
         elif tag is not None:
             raise ValidationError('Tag belongs to service')
@@ -256,15 +275,26 @@ class CatalogEndpoint:
         else:
             path = '/catalog/nodes'
             params = {'dc': self.dc}
-            response = yield from self.client.get(path, params=params)
-            values = []
-            for data in (yield from response.json()):
-                node = Node(name=data.get('Node'),
-                            address=data.get('Address'))
-                values.append(node)
-            return render(values, response=response)
 
-    @asyncio.coroutine
+            @asyncio.coroutine
+            def run(client):
+                response = yield from client.get(path, params=params)
+                values = []
+                for data in (yield from response.json()):
+                    node = Node(name=data.get('Node'),
+                                address=data.get('Address'))
+                    values.append(node)
+                return render(values, response=response)
+
+        if watch:
+            index = extract_ref(watch)
+            params.update({
+                'index': index,
+                'wait': '10m'
+            })
+
+        return asyncio.async(run(self.client), loop=self.loop)
+
     def get(self, node):
         """Get a node. Raises a NotFound if it's not found.
 
@@ -284,29 +314,58 @@ class CatalogEndpoint:
         name = extract_name(node)
         path = '/catalog/node/%s' % extract_name(name)
         params = {'dc': self.dc}
-        response = yield from self.client.get(path, params=params)
-        data = (yield from response.json())
-        if data:
-            node = Node(data['Node'].get('Node'),
-                        data['Node'].get('Address'))
-            node.services = {}
-            for k, d in data['Services'].items():
-                node.services[k] = NodeService(id=d.get('ID'),
-                                               name=d.get('Service'),
-                                               tags=d.get('Tags'),
-                                               port=d.get('Port'))
-            return node
-        raise self.NotFound('No node was not found for %s' % name)
 
-    @asyncio.coroutine
-    def services(self):
+        @asyncio.coroutine
+        def run(client):
+            response = yield from client.get(path, params=params)
+            data = (yield from response.json())
+            if data:
+                node = Node(data['Node'].get('Node'),
+                            data['Node'].get('Address'))
+                node.services = {}
+                for k, d in data['Services'].items():
+                    node.services[k] = NodeService(id=d.get('ID'),
+                                                   name=d.get('Service'),
+                                                   tags=d.get('Tags'),
+                                                   port=d.get('Port'))
+                return node
+            err = self.NotFound('No node was not found for %s' % name)
+            err.consul = render_meta(response)
+            raise err
+        return asyncio.async(run(self.client), loop=self.loop)
+
+    def services(self, watch=None):
         """Lists services.
 
+        Parameters:
+            watch (int): wait for changes
         Returns:
             dict: a mapping of services - known tags
         """
+        index = None
+        path = '/catalog/services'
         params = {'dc': self.dc}
-        response = yield from self.client.get('/catalog/services',
-                                              params=params)
-        values = yield from response.json()
-        return render(values, response=response)
+
+        if watch:
+            index = extract_ref(watch)
+            params.update({
+                'index': index,
+                'wait': '10m'
+            })
+
+        @asyncio.coroutine
+        def run(client):
+            while True:
+                response = yield from client.get(path, params=params)
+                meta = render_meta(response)
+                if index == meta.last_index:
+                    continue
+                elif response.status == 200:
+                    values = yield from response.json()
+                    return render(values, response=response)
+                else:
+                    msg = yield from response.text()
+                    err = HTTPError(msg, response.status)
+                    err.consul = meta
+                    raise err
+        return asyncio.async(run(self.client), loop=self.loop)

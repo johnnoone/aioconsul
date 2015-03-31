@@ -4,7 +4,7 @@ import logging
 from aioconsul.bases import Key
 from aioconsul.response import render, render_meta
 from aioconsul.util import extract_id, extract_ref
-from aioconsul.exceptions import ValidationError, ACLPermissionDenied, HTTPError
+from aioconsul.exceptions import PermissionDenied, ValidationError, HTTPError
 from aioconsul.types import ConsulString
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class KVEndpoint:
             'keys': True,
             'separator': separator
         }
-        
+
         @asyncio.coroutine
         def run(path, params, client):
             response = yield from client.get(path, params=params)
@@ -227,9 +227,9 @@ class KVEndpoint:
 
         Parameters:
             path (str): exact match
-            watch (int): the index to watch
+            watch (int): wait for changes
         Returns:
-            object: The value corresponding to key.
+            object: value corresponding to key.
         Raises:
             NotFound: key was not found
         """
@@ -270,6 +270,7 @@ class KVEndpoint:
 
         Parameters:
             path (str): prefix to check
+            watch (int): wait for changes
         Returns:
             ConsulMapping: mapping of key names - values
         """
@@ -289,7 +290,7 @@ class KVEndpoint:
                 values = {item['Key']: decode(item) for item in data}
                 return render(values, response=response)
             yield from fail(response)
-            
+
         return asyncio.async(run(path, params, self.client), loop=self.loop)
 
     __call__ = items
@@ -321,7 +322,7 @@ def decode(data, base64=True):
 def fail(response):
     msg = yield from response.text()
     if response.status in (401, 403):
-        err = ACLPermissionDenied(msg)
+        err = PermissionDenied(msg)
     else:
         err = HTTPError(msg, response.status)
     err.consul = render_meta(response)

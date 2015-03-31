@@ -1,5 +1,5 @@
 import pytest
-from aioconsul import ACLPermissionDenied
+from aioconsul import PermissionDenied
 from aioconsul import Consul
 from conftest import async_test
 
@@ -75,7 +75,7 @@ def test_leader(leader):
 
     node = Consul(token=token)
     yield from node.kv.get('foo')
-    with pytest.raises(ACLPermissionDenied):
+    with pytest.raises(PermissionDenied):
         yield from node.kv.set('foo', 'baz')
     with pytest.raises(node.kv.NotFound):
         yield from node.kv.get('foo/bar')

@@ -10,7 +10,7 @@ How to create a new token:
 
 .. code-block:: python
 
-    from aioconsul import Consul, ACLPermissionDenied
+    from aioconsul import Consul, PermissionDenied
     import pytest
 
     master = Consul(token='master.token')
@@ -26,7 +26,7 @@ How to create a new token:
     yield from node.kv.get('foo')
 
     # writes must be disabled
-    with pytest.raises(ACLPermissionDenied):
+    with pytest.raises(PermissionDenied):
         yield from node.kv.set('foo', 'baz')
 
     # everything under `foo/` must be hidden

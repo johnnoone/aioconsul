@@ -6,7 +6,7 @@ KV
 
 The KV endpoint is used to access Consul's simple key/value store, useful for
 storing service configuration or other metadata. Almost every methods returns
-:ref:`asyncio.Tasks`, and results and exceptions implements a `consul`
+:py:class:`asyncio.Task`, and results and exceptions implements a `consul`
 attribute which holds `meta data`_.
 
 Simple usage

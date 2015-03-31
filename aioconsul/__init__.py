@@ -1,11 +1,11 @@
 from .client import Consul
 from .bases import *  # noqa
-from .exceptions import ACLPermissionDenied, ValidationError
+from .exceptions import PermissionDenied, ValidationError
 from .meta import ConsulMeta
 from .types import ConsulMapping, ConsulSet, ConsulString
 from .v1 import *  # noqa
 
-__all__ = ['ACLPermissionDenied', 'Consul', 'ValidationError']
+__all__ = ['PermissionDenied', 'Consul', 'ValidationError']
 
 __all__ += [
     'ACLEndpoint', 'AgentEndpoint', 'CatalogEndpoint', 'EventEndpoint',

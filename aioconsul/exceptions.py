@@ -15,17 +15,12 @@ class HTTPError(ClientError):
         ClientError.__init__(self, msg)
 
 
-class UnknownLeader(HTTPError):
-    """Raised when leader is not known (for staleness of data)."""
+class PermissionDenied(Exception):
+    """Raised when client has not good ACL."""
     pass
 
 
-class ACLPermissionDenied(Exception):
-    """docstring for ACLPermissionDenied"""
-    pass
-
-
-class ACLSupportDisabled(ClientError):
+class SupportDisabled(ClientError):
     """Raised when client does not support ACL."""
     pass
 

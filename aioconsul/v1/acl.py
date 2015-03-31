@@ -3,7 +3,7 @@ import json
 import logging
 from collections import defaultdict
 from aioconsul.bases import Token, Rule
-from aioconsul.exceptions import ACLSupportDisabled
+from aioconsul.exceptions import SupportDisabled
 from aioconsul.request import RequestWrapper
 from aioconsul.response import render
 from aioconsul.util import extract_id
@@ -25,14 +25,14 @@ class SupportedClient(RequestWrapper):
     @asyncio.coroutine
     def request(self, method, path, **kwargs):
         if self.obj.supported is False:
-            raise ACLSupportDisabled()
+            raise SupportDisabled()
 
         response = yield from self.client.request(method, path, **kwargs)
         if response.status in (401, 403):
             if self.obj.supported is None:
                 self.obj.supported = False
             body = yield from response.text()
-            raise ACLSupportDisabled(body)
+            raise SupportDisabled(body)
         self.obj.supported = True
         return response
 
@@ -65,7 +65,7 @@ class ACLEndpoint:
         if self.supported is None:
             try:
                 yield from self.client.get('acl/list')
-            except ACLSupportDisabled:
+            except SupportDisabled:
                 supported = False
             else:
                 supported = True

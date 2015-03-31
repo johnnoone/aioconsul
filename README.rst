@@ -239,7 +239,7 @@ ACL
 
 ::
 
-    from aioconsul import Consul, ACLPermissionDenied
+    from aioconsul import Consul, PermissionDenied
     client = Consul(token=master_token)
 
     # create a token
@@ -251,7 +251,7 @@ ACL
     # access to kv with the fresh token
     node = Consul(token=token)
     yield from node.kv.get('foo')
-    with pytest.raises(ACLPermissionDenied):
+    with pytest.raises(PermissionDenied):
         yield from node.kv.set('foo', 'baz')
     with pytest.raises(node.kv.NotFound):
         yield from node.kv.get('foo/bar')
