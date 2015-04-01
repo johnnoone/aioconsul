@@ -39,13 +39,14 @@ def format_duration(obj):
 
 
 def task(func=None, *, loop=None):
-    """transform func into an asyncio task
-    """
+    """Transforms func into an asyncio task."""
 
     if not func:
+        if not loop:
+            raise ValueError('loop is required')
         return partial(task, loop=loop)
 
-    if getattr(func, '_task', False):
+    if getattr(func, '_is_task', False):
         return func
 
     coro = asyncio.coroutine(func)
@@ -59,5 +60,5 @@ def task(func=None, *, loop=None):
         @wraps(func)
         def wrapper(*arg, **kwargs):
             return asyncio.async(coro(*arg, **kwargs), loop=loop)
-    wrapper._task = True
+    wrapper._is_task = True
     return wrapper
