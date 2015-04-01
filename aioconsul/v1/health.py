@@ -4,7 +4,7 @@ from aioconsul.bases import Node, NodeService, Check
 from aioconsul.constants import CHECK_STATES
 from aioconsul.exceptions import ValidationError
 from aioconsul.response import render
-from aioconsul.util import extract_id
+from aioconsul.util import extract_id, task
 logger = logging.getLogger(__name__)
 
 
@@ -14,7 +14,7 @@ class HealthEndpoint:
         self.client = client
         self.loop = loop or asyncio.get_event_loop()
 
-    @asyncio.coroutine
+    @task
     def nodes(self, service, *, dc=None, tag=None, state=None):
         """Returns nodes by service, tag and state.
 
@@ -54,7 +54,7 @@ class HealthEndpoint:
             values.add(node)
         return render(values, response=response)
 
-    @asyncio.coroutine
+    @task
     def items(self, *, node=None, service=None, state=None, dc=None):
         """Returns checks filtered by node, service and state.
 

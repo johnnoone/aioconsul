@@ -3,7 +3,7 @@ import logging
 from aioconsul.bases import Event
 from aioconsul.exceptions import HTTPError, ValidationError
 from aioconsul.response import render, render_meta
-from aioconsul.util import extract_name
+from aioconsul.util import extract_name, task
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class EventEndpoint:
         self.client = client
         self.loop = loop or asyncio.get_event_loop()
 
-    @asyncio.coroutine
+    @task
     def items(self, *, event=None):
         """Lists latest events.
 
@@ -34,7 +34,7 @@ class EventEndpoint:
 
     __call__ = items
 
-    @asyncio.coroutine
+    @task
     def fire(self, event, payload, *, dc=None,
              node_filter=None, service_filter=None, tag_filter=None):
         """Fires a new event.

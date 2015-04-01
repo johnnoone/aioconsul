@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from aioconsul.bases import Config, Member
-from aioconsul.util import extract_name
+from aioconsul.util import extract_name, task
 from .check import AgentCheckEndpoint
 from .service import AgentServiceEndpoint
 
@@ -16,7 +16,7 @@ class AgentEndpoint:
         self.services = AgentServiceEndpoint(client)
         self.loop = loop or asyncio.get_event_loop()
 
-    @asyncio.coroutine
+    @task
     def members(self):
         """Returns a set of members.
 
@@ -26,7 +26,7 @@ class AgentEndpoint:
         response = yield from self.client.get('/agent/members')
         return {decode_member(item) for item in (yield from response.json())}
 
-    @asyncio.coroutine
+    @task
     def config(self):
         """Returns configuration of agent.
 
@@ -38,7 +38,7 @@ class AgentEndpoint:
         data = yield from response.json()
         return decode_config(data['Config'])
 
-    @asyncio.coroutine
+    @task
     def me(self):
         """Returns the member object of agent.
 
@@ -50,7 +50,7 @@ class AgentEndpoint:
         data = yield from response.json()
         return decode_member(data['Member'])
 
-    @asyncio.coroutine
+    @task
     def enable(self, reason=None):
         """Enable agent.
 
@@ -67,7 +67,7 @@ class AgentEndpoint:
                                               params=params)
         return response.status == 200
 
-    @asyncio.coroutine
+    @task
     def disable(self, reason=None):
         """Disable agent.
 
@@ -84,7 +84,7 @@ class AgentEndpoint:
                                               params=params)
         return response.status == 200
 
-    @asyncio.coroutine
+    @task
     def join(self, address, *, wan=None):
         """Asks the agent to join a cluster.
 
@@ -101,7 +101,7 @@ class AgentEndpoint:
         response = yield from self.client.get(path, params=params)
         return response.status == 200
 
-    @asyncio.coroutine
+    @task
     def force_leave(self, member):
         """Asks a member to leave the cluster.
 

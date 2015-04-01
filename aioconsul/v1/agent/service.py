@@ -3,7 +3,7 @@ import json
 import logging
 from aioconsul.bases import NodeService
 from aioconsul.exceptions import HTTPError, ValidationError
-from aioconsul.util import extract_id
+from aioconsul.util import extract_id, task
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class AgentServiceEndpoint:
         self.client = client
         self.loop = loop or asyncio.get_event_loop()
 
-    @asyncio.coroutine
+    @task
     def items(self):
         """Returns the services the local agent is managing.
 
@@ -30,7 +30,7 @@ class AgentServiceEndpoint:
 
     __call__ = items
 
-    @asyncio.coroutine
+    @task
     def register_script(self, name, script, *, id=None, tags=None,
                         address=None, port=None, interval=None):
         """Registers a new local service with a check by script.
@@ -55,7 +55,7 @@ class AgentServiceEndpoint:
                                                        interval=interval))
         return response
 
-    @asyncio.coroutine
+    @task
     def register_http(self, name, http, *, id=None, tags=None,
                       address=None, port=None, interval=None):
         """Registers a new local service with a check by http.
@@ -80,7 +80,7 @@ class AgentServiceEndpoint:
                                                        interval=interval))
         return response
 
-    @asyncio.coroutine
+    @task
     def register_ttl(self, name, ttl, *, id=None,
                      tags=None, address=None, port=None):
         """Registers a new local service with a check by ttl.
@@ -103,7 +103,7 @@ class AgentServiceEndpoint:
                                             check=dict(ttl=ttl))
         return response
 
-    @asyncio.coroutine
+    @task
     def register(self, name, *, id=None, tags=None,
                  address=None, port=None, check=None):
         """Registers a new local service.
@@ -156,7 +156,7 @@ class AgentServiceEndpoint:
             raise ValidationError(msg)
         raise HTTPError(msg, response.status)
 
-    @asyncio.coroutine
+    @task
     def deregister(self, service):
         """Deregister a local service.
 
@@ -169,7 +169,7 @@ class AgentServiceEndpoint:
         response = yield from self.client.get(path)
         return response.status == 200
 
-    @asyncio.coroutine
+    @task
     def enable(self, service, reason=None):
         """Enable service.
 
@@ -182,7 +182,7 @@ class AgentServiceEndpoint:
         response = yield from self.maintenance(service, False, reason)
         return response
 
-    @asyncio.coroutine
+    @task
     def disable(self, service, reason=None):
         """Disable service.
 
@@ -195,7 +195,7 @@ class AgentServiceEndpoint:
         response = yield from self.maintenance(service, True, reason)
         return response
 
-    @asyncio.coroutine
+    @task
     def maintenance(self, service, enable, reason=None):
         """Manages service maintenance mode.
 
@@ -214,7 +214,7 @@ class AgentServiceEndpoint:
         response = yield from self.client.get(path, params=params)
         return response.status == 200
 
-    @asyncio.coroutine
+    @task
     def get(self, service):
         """Fetch local service.
 

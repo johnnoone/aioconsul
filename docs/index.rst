@@ -49,8 +49,13 @@ And display the catalog::
         print(node.name, node.address)
 
 
-In the pit
-----------
+Design
+------
+
+Most of returned obj implements a `consul` attribute.
+
+Focus
+-----
 
 .. toctree::
    :maxdepth: 1

@@ -3,7 +3,7 @@ import copy
 import logging
 from aioconsul.bases import Key
 from aioconsul.response import render, render_meta
-from aioconsul.util import extract_id, extract_ref
+from aioconsul.util import extract_id, extract_ref, task
 from aioconsul.exceptions import PermissionDenied, ValidationError, HTTPError
 from aioconsul.types import ConsulString
 
@@ -38,6 +38,7 @@ class KVEndpoint:
         instance.dc = name
         return instance
 
+    @task
     def keys(self, prefix, *, separator=None):
         """Returns all keys that starts with path
 
@@ -54,23 +55,19 @@ class KVEndpoint:
             'separator': separator
         }
 
-        @asyncio.coroutine
-        def run(path, params, client):
-            response = yield from client.get(path, params=params)
-            if response.status == 200:
-                values = yield from response.json()
-                return render(values, response=response)
-            yield from fail(response)
-        return asyncio.async(run(path, params, self.client), loop=self.loop)
+        response = yield from self.client.get(path, params=params)
+        if response.status == 200:
+            values = yield from response.json()
+            return render(values, response=response)
+        yield from fail(response)
 
-    @asyncio.coroutine
+    @task
     def acquire(self, key, *, session):
         """Acquire a key
 
         Parameters:
             path (str): the key
             session (Session): session or id
-
         Returns:
             bool: key has been acquired
         """
@@ -84,7 +81,7 @@ class KVEndpoint:
             return (yield from response.json())
         yield from fail(response)
 
-    @asyncio.coroutine
+    @task
     def release(self, key, *, session):
         """Release a key
 
@@ -104,7 +101,6 @@ class KVEndpoint:
             return (yield from response.json())
         yield from fail(response)
 
-    @asyncio.coroutine
     def set(self, key, obj, *, cas=None):
         """Sets a key - obj
 
@@ -121,7 +117,7 @@ class KVEndpoint:
         value, flags = encode(obj)
         return self.put(key, value, flags=flags, cas=cas)
 
-    @asyncio.coroutine
+    @task
     def put(self, key, value, *, flags=None, cas=None):
         """Sets a key - value (lowlevel)
 
@@ -149,18 +145,14 @@ class KVEndpoint:
             'cas': cas
         }
 
-        @asyncio.coroutine
-        def run(client):
-            """docstring for run"""
-            response = yield from client.put(path,
-                                             params=params,
-                                             data=value)
-            if response.status == 200:
-                return (yield from response.json())
-            yield from fail(response)
+        response = yield from self.client.put(path,
+                                              params=params,
+                                              data=value)
+        if response.status == 200:
+            return (yield from response.json())
+        yield from fail(response)
 
-        return asyncio.async(run(self.client), loop=self.loop)
-
+    @task
     def delete(self, path, *, recurse=None, cas=None):
         """Deletes one or many keys.
 
@@ -171,7 +163,7 @@ class KVEndpoint:
         Returns:
             bool: succeed
         """
-        fullpath = 'kv/%s' % path
+        path = 'kv/%s' % path
         if cas:
             cas = extract_ref(cas)
         params = {
@@ -180,14 +172,12 @@ class KVEndpoint:
             'cas': cas
         }
 
-        @asyncio.coroutine
-        def run(client):
-            response = yield from client.delete(fullpath, params=params)
-            if response.status == 200:
-                return (yield from response.json())
-            yield from fail(response)
-        return asyncio.async(run(self.client), loop=self.loop)
+        response = yield from self.client.delete(path, params=params)
+        if response.status == 200:
+            return (yield from response.json())
+        yield from fail(response)
 
+    @task
     def meta(self, key=None, *, prefix=None):
         """Returns the meta of a key, or a prefix
 
@@ -213,12 +203,10 @@ class KVEndpoint:
         params = {'dc': self.dc,
                   'recursive': recursive}
 
-        @asyncio.coroutine
-        def run(client):
-            response = yield from client.get(path, params=params)
-            return render_meta(response)
-        return asyncio.async(run(self.client), loop=self.loop)
+        response = yield from self.client.get(path, params=params)
+        return render_meta(response)
 
+    @task
     def get(self, key, *, watch=None):
         """Fetch one value
 
@@ -244,24 +232,21 @@ class KVEndpoint:
                 'wait': '10m'
             })
 
-        @asyncio.coroutine
-        def run(path, params, client):
-            while True:
-                response = yield from client.get(path, params=params)
-                meta = render_meta(response)
-                if index == meta.last_index:
-                    continue
-                elif response.status == 200:
-                    for item in (yield from response.json()):
-                        return decode(item)
-                elif response.status == 404:
-                    err = self.NotFound('Key %r was not found' % path)
-                    err.consul = render_meta(response)
-                    raise err
-                yield from fail(response)
+        while True:
+            response = yield from self.client.get(path, params=params)
+            meta = render_meta(response)
+            if index == meta.last_index:
+                continue
+            elif response.status == 200:
+                for item in (yield from response.json()):
+                    return decode(item)
+            elif response.status == 404:
+                err = self.NotFound('Key %r was not found' % path)
+                err.consul = render_meta(response)
+                raise err
+            yield from fail(response)
 
-        return asyncio.async(run(path, params, self.client), loop=self.loop)
-
+    @task
     def items(self, path, watch=None):
         """Fetch values by prefix
 
@@ -282,16 +267,12 @@ class KVEndpoint:
             params.update({'index': extract_ref(watch),
                            'watch': '10m'})
 
-        @asyncio.coroutine
-        def run(path, params, client):
-            response = yield from client.get(path, params=params)
-            if response.status == 200:
-                data = yield from response.json()
-                values = {item['Key']: decode(item) for item in data}
-                return render(values, response=response)
-            yield from fail(response)
-
-        return asyncio.async(run(path, params, self.client), loop=self.loop)
+        response = yield from self.client.get(path, params=params)
+        if response.status == 200:
+            data = yield from response.json()
+            values = {item['Key']: decode(item) for item in data}
+            return render(values, response=response)
+        yield from fail(response)
 
     __call__ = items
 

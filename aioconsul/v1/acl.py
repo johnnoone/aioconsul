@@ -6,7 +6,7 @@ from aioconsul.bases import Token, Rule
 from aioconsul.exceptions import SupportDisabled
 from aioconsul.request import RequestWrapper
 from aioconsul.response import render
-from aioconsul.util import extract_id
+from aioconsul.util import extract_id, task
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class ACLEndpoint:
         self.client = SupportedClient(client, self)
         self.loop = loop or asyncio.get_event_loop()
 
-    @asyncio.coroutine
+    @task
     def is_supported(self):
         """Tells if ACL is supported or not.
 
@@ -72,7 +72,7 @@ class ACLEndpoint:
             self.supported = supported
         return self.supported
 
-    @asyncio.coroutine
+    @task
     def create(self, name, *, type=None, rules=None, obj=False):
         """Create a new token.
 
@@ -99,7 +99,7 @@ class ACLEndpoint:
         response = yield from self.client.put(path, data=json.dumps(data))
         return (yield from self._parse_put_token(response, obj))
 
-    @asyncio.coroutine
+    @task
     def update(self, token, *, name=None, type=None, rules=None, obj=False):
         """Update a token.
 
@@ -129,7 +129,7 @@ class ACLEndpoint:
         response = yield from self.client.put(path, data=json.dumps(data))
         return (yield from self._parse_put_token(response, obj))
 
-    @asyncio.coroutine
+    @task
     def destroy(self, token):
         """Destroy a token.
 
@@ -144,7 +144,7 @@ class ACLEndpoint:
 
     delete = destroy
 
-    @asyncio.coroutine
+    @task
     def get(self, token):
         """Get a token.
 
@@ -164,7 +164,7 @@ class ACLEndpoint:
         else:
             raise self.NotFound('Token %s was not found' % token)
 
-    @asyncio.coroutine
+    @task
     def clone(self, token, *, obj=False):
         """Clone a token.
 
@@ -181,7 +181,7 @@ class ACLEndpoint:
         response = yield from self.client.put(path)
         return (yield from self._parse_put_token(response, obj))
 
-    @asyncio.coroutine
+    @task
     def _parse_put_token(self, response, obj=False):
         """Parse a response, and fetch object, or not!
 
@@ -192,7 +192,7 @@ class ACLEndpoint:
         else:
             return token_id
 
-    @asyncio.coroutine
+    @task
     def items(self):
         """Returns a set of all Token.
 

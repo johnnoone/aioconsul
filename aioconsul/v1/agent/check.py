@@ -1,7 +1,7 @@
 import asyncio
 import json
 from aioconsul.bases import Check
-from aioconsul.util import extract_id, format_duration
+from aioconsul.util import extract_id, format_duration, task
 
 
 class AgentCheckEndpoint:
@@ -13,7 +13,7 @@ class AgentCheckEndpoint:
         self.client = client
         self.loop = loop or asyncio.get_event_loop()
 
-    @asyncio.coroutine
+    @task
     def items(self):
         """Returns the checks the local agent is managing.
 
@@ -26,7 +26,7 @@ class AgentCheckEndpoint:
 
     __call__ = items
 
-    @asyncio.coroutine
+    @task
     def register_script(self, name, script, *, interval, id=None, notes=None):
         """Registers a new local check by script.
 
@@ -46,7 +46,7 @@ class AgentCheckEndpoint:
                                             script=script)
         return response
 
-    @asyncio.coroutine
+    @task
     def register_http(self, name, http, *, interval, id=None, notes=None):
         """Registers a new local check by http.
 
@@ -66,7 +66,7 @@ class AgentCheckEndpoint:
                                             http=http)
         return response
 
-    @asyncio.coroutine
+    @task
     def register_ttl(self, name, ttl, *, id=None, notes=None):
         """Registers a new local check by ttl.
 
@@ -84,7 +84,7 @@ class AgentCheckEndpoint:
                                             ttl=ttl)
         return response
 
-    @asyncio.coroutine
+    @task
     def register(self, name, **params):
         """Registers a new local check.
 
@@ -119,7 +119,7 @@ class AgentCheckEndpoint:
         if response.status == 200:
             return Check(id=params.get('id', name), name=name)
 
-    @asyncio.coroutine
+    @task
     def deregister(self, check):
         """Deregisters a local check.
 
@@ -132,7 +132,7 @@ class AgentCheckEndpoint:
         response = yield from self.client.get(path)
         return response.status == 200
 
-    @asyncio.coroutine
+    @task
     def passing(self, check, note=None):
         """Marks a local test as passing.
 
@@ -145,7 +145,7 @@ class AgentCheckEndpoint:
         response = yield from self.mark(check, 'passing', note=note)
         return response
 
-    @asyncio.coroutine
+    @task
     def warning(self, check, note=None):
         """Marks a local test as warning.
 
@@ -158,7 +158,7 @@ class AgentCheckEndpoint:
         response = yield from self.mark(check, 'warning', note=note)
         return response
 
-    @asyncio.coroutine
+    @task
     def failing(self, check, note=None):
         """Marks a local test as critical.
 
@@ -173,7 +173,7 @@ class AgentCheckEndpoint:
 
     critical = failing
 
-    @asyncio.coroutine
+    @task
     def mark(self, check, state, *, note=None):
         """Set state of a local test.
 
@@ -192,7 +192,7 @@ class AgentCheckEndpoint:
         response = yield from self.client.get(path, params={'note': note})
         return response.status == 200
 
-    @asyncio.coroutine
+    @task
     def get(self, check):
         """Get a local test.
 

@@ -4,7 +4,7 @@ import json
 import logging
 from aioconsul.bases import Session
 from aioconsul.response import render
-from aioconsul.util import format_duration, extract_id, extract_name
+from aioconsul.util import format_duration, extract_id, extract_name, task
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class SessionEndpoint:
         instance.dc = name
         return instance
 
-    @asyncio.coroutine
+    @task
     def create(self, *, name=None, node=None, checks=None,
                behavior=None, lock_delay=None, ttl=None):
         """Initialize a new session.
@@ -76,7 +76,7 @@ class SessionEndpoint:
         if response.status == 200:
             return decode((yield from response.json()))
 
-    @asyncio.coroutine
+    @task
     def delete(self, session):
         """Delete session
 
@@ -92,7 +92,7 @@ class SessionEndpoint:
 
     destroy = delete
 
-    @asyncio.coroutine
+    @task
     def get(self, session):
         """
         Returns the requested session information within datacenter.
@@ -113,7 +113,7 @@ class SessionEndpoint:
             return decode(item)
         raise self.NotFound('Session %r was not found' % extract_id(session))
 
-    @asyncio.coroutine
+    @task
     def items(self, *, node=None):
         """List active sessions.
 
@@ -137,7 +137,7 @@ class SessionEndpoint:
 
     __call__ = items
 
-    @asyncio.coroutine
+    @task
     def renew(self, session):
         """
         If session was created with a TTL set, it will renew this session.
