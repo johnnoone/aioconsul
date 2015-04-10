@@ -106,6 +106,7 @@ napoleon_use_param = True
 napoleon_use_rtype = False
 
 
+autodoc_member_order = 'groupwise'
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -139,8 +140,8 @@ latex_elements = {
 }
 
 latex_documents = [
-  (master_doc, 'AIOConsul.tex', 'AIO Consul Documentation',
-   'Xavier Barbosa', 'manual'),
+    (master_doc, 'AIOConsul.tex', 'AIO Consul Documentation',
+     'Xavier Barbosa', 'manual'),
 ]
 
 
@@ -155,7 +156,7 @@ man_pages = [
 #  Options for Texinfo output
 
 texinfo_documents = [
-  (master_doc, 'AIOConsul', 'AIO Consul Documentation',
-   author, 'AIOConsul', 'One line description of project.',
-   'Miscellaneous'),
+    (master_doc, 'AIOConsul', 'AIO Consul Documentation',
+     author, 'AIOConsul', 'One line description of project.',
+     'Miscellaneous'),
 ]

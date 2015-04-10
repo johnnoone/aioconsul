@@ -120,13 +120,13 @@ class MethodDocumenter(MethodDocumenter):
 
 
 def setup(app):
-    app.add_directive_to_domain('py', 'generator', PyCoroutineFunction)
-    app.add_directive_to_domain('py', 'generatormethod', PyCoroutineMethod)
+    app.add_directive_to_domain('py', 'generator', PyGeneratorFunction)
+    app.add_directive_to_domain('py', 'generatormethod', PyGeneratorMethod)
 
     app.add_directive_to_domain('py', 'coroutine', PyCoroutineFunction)
     app.add_directive_to_domain('py', 'coroutinemethod', PyCoroutineMethod)
 
-    app.add_directive_to_domain('py', 'taskfunction', PyTaskFunction)
+    app.add_directive_to_domain('py', 'task', PyTaskFunction)
     app.add_directive_to_domain('py', 'taskmethod', PyTaskMethod)
 
     app.add_autodocumenter(FunctionDocumenter)

@@ -5,7 +5,8 @@ import logging
 from aioconsul.bases import Check, Node, NodeService, Service
 from aioconsul.exceptions import HTTPError, ValidationError
 from aioconsul.response import render, render_meta
-from aioconsul.util import extract_id, extract_name, extract_ref, task
+from aioconsul.util import extract_id, extract_name, extract_ref
+from aioconsul.util import task, mark_task
 
 log = logging.getLogger(__name__)
 
@@ -39,14 +40,17 @@ class CatalogEndpoint:
         instance.dc = name
         return instance
 
+    @mark_task
     def register_node(self, node):
         """Registers a node"""
         return self.register(node)
 
+    @mark_task
     def register_check(self, node, *, check):
         """Registers a check"""
         return self.register(node, check=check)
 
+    @mark_task
     def register_service(self, node, *, service):
         """Registers a service"""
         return self.register(node, service=service)
@@ -108,6 +112,7 @@ class CatalogEndpoint:
         if response.status == 200:
             return (yield from response.json())
 
+    @mark_task
     def deregister_node(self, node):
         """Deregisters a node
 
@@ -120,6 +125,7 @@ class CatalogEndpoint:
         """
         return self.deregister(node)
 
+    @mark_task
     def deregister_check(self, node, *, check):
         """Deregisters a check
 
@@ -133,6 +139,7 @@ class CatalogEndpoint:
         """
         return self.deregister(node, check=check)
 
+    @mark_task
     def deregister_service(self, node, *, service):
         """Deregisters a service
 
@@ -212,6 +219,7 @@ class CatalogEndpoint:
         values = yield from response.json()
         return render(values, response=response)
 
+    @mark_task
     def nodes(self, *, service=None, tag=None, watch=None):
         """Lists nodes.
 

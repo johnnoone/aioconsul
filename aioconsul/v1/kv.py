@@ -3,7 +3,7 @@ import copy
 import logging
 from aioconsul.bases import Key
 from aioconsul.response import render, render_meta
-from aioconsul.util import extract_id, extract_ref, task
+from aioconsul.util import extract_id, extract_ref, task, mark_task
 from aioconsul.exceptions import PermissionDenied, ValidationError, HTTPError
 from aioconsul.types import ConsulString
 
@@ -101,6 +101,7 @@ class KVEndpoint:
             return (yield from response.json())
         yield from fail(response)
 
+    @mark_task
     def set(self, key, obj, *, cas=None):
         """Sets a key - obj
 

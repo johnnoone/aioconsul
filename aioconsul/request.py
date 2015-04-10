@@ -1,6 +1,6 @@
 import aiohttp
-import asyncio
 import logging
+from .util import task, mark_task
 
 
 log = logging.getLogger(__name__)
@@ -14,45 +14,38 @@ class RequestHandler:
         token (str): Token ID
         consistency (str): default, consistent or stale
     """
+
     def __init__(self, host, version, *, token=None, consistency=None):
         self.host = host
         self.version = version
         self.token = token
         self.consistency = consistency
 
-    @asyncio.coroutine
     def get(self, path, **kwargs):
         """
         Short-cut towards :meth:`request`
         """
-        response = yield from self.request('GET', path, **kwargs)
-        return response
+        return self.request('GET', path, **kwargs)
 
-    @asyncio.coroutine
     def post(self, path, **kwargs):
         """
         Short-cut towards :meth:`request`
         """
-        response = yield from self.request('POST', path, **kwargs)
-        return response
+        return self.request('POST', path, **kwargs)
 
-    @asyncio.coroutine
     def put(self, path, **kwargs):
         """
         Short-cut towards :meth:`request`
         """
-        response = yield from self.request('PUT', path, **kwargs)
-        return response
+        return self.request('PUT', path, **kwargs)
 
-    @asyncio.coroutine
     def delete(self, path, **kwargs):
         """
         Short-cut towards :meth:`request`
         """
-        response = yield from self.request('DELETE', path, **kwargs)
-        return response
+        return self.request('DELETE', path, **kwargs)
 
-    @asyncio.coroutine
+    @task
     def request(self, method, path, **kwargs):
         url = '%s/%s/%s' % (self.host, self.version, path.lstrip('/'))
 
@@ -87,38 +80,34 @@ class RequestWrapper:
     def __init__(self, req_handler):
         self.req_handler = req_handler
 
-    @asyncio.coroutine
+    @mark_task
     def get(self, path, **kwargs):
         """
         Short-cut towards :meth:`request`
         """
-        response = yield from self.request('get', path, **kwargs)
-        return response
+        return self.request('get', path, **kwargs)
 
-    @asyncio.coroutine
+    @mark_task
     def post(self, path, **kwargs):
         """
         Short-cut towards :meth:`request`
         """
-        response = yield from self.request('post', path, **kwargs)
-        return response
+        return self.request('post', path, **kwargs)
 
-    @asyncio.coroutine
+    @mark_task
     def put(self, path, **kwargs):
         """
         Short-cut towards :meth:`request`
         """
-        response = yield from self.request('put', path, **kwargs)
-        return response
+        return self.request('put', path, **kwargs)
 
-    @asyncio.coroutine
+    @mark_task
     def delete(self, path, **kwargs):
         """
         Short-cut towards :meth:`request`
         """
-        response = yield from self.request('delete', path, **kwargs)
-        return response
+        return self.request('delete', path, **kwargs)
 
-    @asyncio.coroutine
+    @mark_task
     def request(self, method, path, **kwargs):
         raise NotImplementedError()

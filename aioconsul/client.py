@@ -2,6 +2,7 @@ import asyncio
 from . import v1
 from .bases import Token
 from .request import RequestHandler, RequestWrapper
+from .util import lazy_property, mark_task
 
 
 class Consul(RequestWrapper):
@@ -29,13 +30,40 @@ class Consul(RequestWrapper):
 
         self.loop = loop or asyncio.get_event_loop()
 
-        self.acl = v1.ACLEndpoint(self.req_handler, loop=self.loop)
-        self.agent = v1.AgentEndpoint(self.req_handler, loop=self.loop)
-        self.catalog = v1.CatalogEndpoint(self.req_handler, loop=self.loop)
-        self.events = v1.EventEndpoint(self.req_handler, loop=self.loop)
-        self.health = v1.HealthEndpoint(self.req_handler, loop=self.loop)
-        self.kv = v1.KVEndpoint(self.req_handler, loop=self.loop)
-        self.sessions = v1.SessionEndpoint(self.req_handler, loop=self.loop)
+    @lazy_property
+    def acl(self):
+        """Implements :ref:`acl endpoint <acl>`."""
+        return v1.ACLEndpoint(self.req_handler, loop=self.loop)
+
+    @lazy_property
+    def agent(self):
+        """Implements :ref:`agent endpoint <agent>`."""
+        return v1.AgentEndpoint(self.req_handler, loop=self.loop)
+
+    @lazy_property
+    def catalog(self):
+        """Implements :ref:`catalog endpoint <catalog>`."""
+        return v1.CatalogEndpoint(self.req_handler, loop=self.loop)
+
+    @lazy_property
+    def events(self):
+        """Implements :ref:`event endpoint <event>`."""
+        return v1.EventEndpoint(self.req_handler, loop=self.loop)
+
+    @lazy_property
+    def health(self):
+        """Implements :ref:`health endpoint <health>`."""
+        return v1.HealthEndpoint(self.req_handler, loop=self.loop)
+
+    @lazy_property
+    def kv(self):
+        """Implements :ref:`kv endpoint <kv>`."""
+        return v1.KVEndpoint(self.req_handler, loop=self.loop)
+
+    @lazy_property
+    def sessions(self):
+        """Implements :ref:`session endpoint <session>`."""
+        return v1.SessionEndpoint(self.req_handler, loop=self.loop)
 
     @property
     def host(self):
@@ -53,7 +81,7 @@ class Consul(RequestWrapper):
     def consistency(self):
         return self.req_handler.consistency
 
-    @asyncio.coroutine
+    @mark_task
     def request(self, method, path, **kwargs):
         """
         Makes single http request.
@@ -63,11 +91,11 @@ class Consul(RequestWrapper):
         Parameters:
             method (str): http method
             path (str): path after version
-
         Keyword Arguments:
             params (dict): get params
             data (str): body of the request
             headers (dict): custom headers
+        Returns:
+            asyncio.Task: the request
         """
-        response = yield from self.req_handler.request(method, path, **kwargs)
-        return response
+        return self.req_handler.request(method, path, **kwargs)
