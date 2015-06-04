@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open('README.rst') as file:
     content = file.read()
@@ -13,9 +13,7 @@ setup(
     author='Xavier Barbosa',
     author_email='clint.northwood@gmail.com',
     url='https://github.com/johnnoone/aioconsul',
-    packages=[
-        'aioconsul'
-    ],
+    packages=find_packages(),
     keywords=[
         'infrastructure',
         'asyncio',
