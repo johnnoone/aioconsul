@@ -16,4 +16,5 @@ RUN set -ex \
 WORKDIR /app
 ADD requirements-tests.txt /app/
 RUN python -m pip install -r requirements-tests.txt
-RUN apk add --no-cache make bash
+RUN apk add --no-cache make bash git
+RUN python -m pip install wheel twine
