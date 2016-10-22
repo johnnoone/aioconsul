@@ -1,33 +1,43 @@
-"""
-    Exceptions
-    ~~~~~~~~~~
-"""
+__all__ = ["ConsulError", "ConflictError", "NotFound", "UnauthorizedError"]
 
 
-class ClientError(Exception):
-    pass
+class ConsulError(Exception):
+    """Consul base error
 
-
-class HTTPError(ClientError):
-
-    def __init__(self, msg, status):
-        self.status = status
-        ClientError.__init__(self, msg)
-
-
-class PermissionDenied(Exception):
-    """Raised when client has not good ACL."""
-    pass
-
-
-class SupportDisabled(ClientError):
-    """Raised when client does not support ACL."""
-    pass
-
-
-# high level
-
-class ValidationError(ValueError):
-    """Raised when something does not validate.
+    Attributes:
+        value (Object): object of the error
+        meta (Meta): meta of the error
     """
-    pass
+    def __init__(self, msg, *, meta=None):
+        self.value = msg
+        self.meta = meta or {}
+        if isinstance(msg, bytes):
+            msg = msg.decode("utf-8")
+        super().__init__(msg)
+
+
+class NotFound(ConsulError):
+    """Raised when object does not exists
+
+    Attributes:
+        value (Object): object of the error
+        meta (Meta): meta of the error
+    """
+
+
+class ConflictError(ConsulError):
+    """Raised when there is a conflict in agent
+
+    Attributes:
+        value (Object): object of the error
+        meta (Meta): meta of the error
+    """
+
+
+class UnauthorizedError(ConsulError):
+    """Raised when session with sufficent rights is required
+
+    Attributes:
+        value (Object): object of the error
+        meta (Meta): meta of the error
+    """

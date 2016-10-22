@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
-
-with open('README.rst') as file:
-    content = file.read()
+import versioneer
 
 setup(
-    name='aioconsul',
-    version='0.3',
+    name="aioconsul",
+    version=versioneer.get_version(),
     description='Consul wrapper for asyncio',
-    long_description=content,
     author='Xavier Barbosa',
     author_email='clint.northwood@gmail.com',
-    url='https://github.com/johnnoone/aioconsul',
+    url='https://lab.errorist.zyz/aio/aioconsul',
     packages=find_packages(),
     keywords=[
         'infrastructure',
@@ -34,9 +31,11 @@ setup(
         'Topic :: System :: Networking :: Monitoring',
     ],
     install_requires=[
-        'aiohttp>=0.14.4'
+        'aiohttp>=1.0.2',
+        'python-dateutil>=2.5.3',
+        'blinker>=1.4',
+        'pyhcl>=0.2.1',
+        'wheel>0.25.0'
     ],
-    extras_require={
-        ':python_version=="3.3"': ['asyncio'],
-    }
+    cmdclass=versioneer.get_cmdclass()
 )

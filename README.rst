@@ -1,7 +1,8 @@
 AIO Consul
 ----------
 
-Consul_ has multiple components, but as a whole, it is a tool for discovering and configuring services in your infrastructure, like :
+Consul_ has multiple components, but as a whole, it is a tool for discovering
+and configuring services in your infrastructure, like:
 
 * Service Discovery
 * Health Checking
@@ -9,7 +10,9 @@ Consul_ has multiple components, but as a whole, it is a tool for discovering an
 * Multi Datacenter
 
 
-This library provides several features to interact with its API. It is build in top of asyncio_ and aiohttp_. It works with Python >= 3.3, and is still a work in progress.
+This library provides several features to interact with its API. It is build
+in top of asyncio_ and aiohttp_. It works with Python >= 3.5, and is still a
+work in progress.
 
 The documentation_ has more details, but sparsely this is how to work with it.
 
@@ -24,15 +27,15 @@ Installation
 Usage
 ~~~~~
 
-Most of the functions are coroutines, so it must be embedded into asyncio tasks::
+Most of the functions are coroutines, so it must be embedded into asyncio
+tasks::
 
     from aioconsul import Consul
     client = Consul()
 
-    @asyncio.coroutine
-    def main():
-        node_name = yield from client.agent.config().node_name
-        print('I am %s!' % node_name)
+    async def main():
+        node = await client.agent.info()
+        print('I am %s!' % node["Name"])
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main)
@@ -48,57 +51,52 @@ Currently this library can handle simple checks::
     client = Consul()
 
     # list all checks
-    for check in (yield from client.agent.checks()):
-        print(check.id)
-
-    # look for a check
-    check = yield from client.agent.checks.get('my-check')
+    checks = await client.checks.items()
+    for check in checks:
+        print(check["ID"])
 
     # register a script check
-    check = yield from client.agent.checks.register_script('my-script-check',
-                                                           script='~/script.sh',
-                                                           interval='5m')
+    registered = await client.checks.register({
+      "Name": "my-script-check",
+      "Script": "~/script.sh",
+      "Interval": "5m"})
 
     # register a http check
-    check = yield from client.agent.checks.register_ttl('my-http-check',
-                                                        http='http://example.com',
-                                                        interval='10h')
+    registered = await client.checks.register({
+      "Name": 'my-http-check',
+      "HTTP": 'http://example.com',
+      "Interval": '10h'})
 
     # register a ttl check
-    check = yield from client.agent.checks.register_ttl('my-ttl-check',
-                                                        ttl='10s')
+    registered = await client.checks.register({
+      "Name": 'my-ttl-check',
+      "ttl": '10s'})
 
     # mark ttl check passing
-    yield from client.agent.checks.passing(check, note='Make it so')
+    await client.checks.passing('my-ttl-check', note='Make it so')
 
     # deregister any check
-    yield from client.agent.checks.deregister(check)
+    await client.checks.deregister('my-ttl-check')
 
 
 Agent services
 ~~~~~~~~~~~~~~
 
-Currently this library can handle simple checks::
+Currently this library can handle simple services::
 
     from aioconsul import Consul
     client = Consul()
 
     # list all services
-    for srv in (yield from client.agent.services()):
-        print(srv.id)
-
-    # search a service by its name
-    srv = yield from client.agent.services.get('my-service')
+    services = await client.services.items()
+    for srv in services.value():
+        print(srv["ID"])
 
     # disable a service
-    yield from client.agent.services.maintenance(srv,
-                                                 enable=False,
-                                                 reason='Migrating stuff')
+    await client.services.disable(srv, reason='Migrating stuff')
 
     # and reenable it
-    yield from client.agent.services.maintenance(srv,
-                                                 enable=True,
-                                                 reason='Done')
+    await client.services.enable(srv, reason='Done')
 
 
 Catalog
@@ -110,16 +108,17 @@ This library can consult catalog::
     client = Consul()
 
     # listing all nodes from catalog
-    for node in (yield from client.catalog.nodes()):
-        print(node.name)
-        print(node.address)
+    nodes, _ = await client.catalog.nodes()
+    for node in nodes:
+        print(node["Name"])
+        print(node["Address"])
 
     # getting a node with all of its service
-    node = yield from client.catalog.get('my-node')
-    print(node.services)
+    node, _ = await client.catalog.node('my-node')
+    print(node["Services"])
 
     # getting all nodes that belong to a service
-    nodes = yield from client.catalog.nodes(service='my-service')
+    nodes, _ = await client.catalog.nodes(service='my-service')
     print(nodes)
 
 And register checks, services and nodes::
@@ -127,17 +126,21 @@ And register checks, services and nodes::
     from aioconsul import Consul
     client = Consul()
 
-    node = {'name': 'my-local-node',
-            'address': '127.0.0.1'}
-    check = {'name': 'baz',
-             'state': 'passing',
-             'service_id': 'bar'}
-    service={'name': 'bar'}
-
-    resp = yield from client.catalog.register(node, check=check, service=service)
+    resp = await client.catalog.register({
+      "Node": 'my-local-node',
+      "Address": "127.0.0.1",
+      "Check": {
+        "Node": 'my-local-node',
+        'Status': 'passing',
+        "ServiceID": 'bar'
+      },
+      "Service": {'ID': 'bar'}
+    })
     assert resp
 
-    resp = yield from client.catalog.deregister(node, check=check, service=service)
+    resp = await client.catalog.deregister({
+      "Node": 'my-local-node'
+    })
     assert resp
 
 
@@ -150,11 +153,12 @@ Events
     client = Consul()
 
     # send an event
-    event = yield from client.event.fire('my-event', node_filter='.*')
+    event = await client.event.fire('my-event', node='.*')
 
     # list all events
-    for event in (yield from client.event.items()):
-        print(event.name)
+    events, _ = await client.event.items()
+    for event in events:
+        print(event["Name"])
 
 
 Health
@@ -166,30 +170,26 @@ Health
     client = Consul()
 
     # checks for a node
-    for check in (yield from client.health.node('my-local-node')):
-        assert check.status == 'passing'
-
-    # health of a node
-    for check in (yield from client.health.node('my-local-node')):
-        assert check.status == 'passing'
+    checks, _ = await client.health.node('my-local-node')
+    for check in checks:
+        assert check["Status"] == 'passing'
 
     # health of a check id
-    for check in (yield from client.health.checks('serfHealth')):
-        assert check.status == 'passing'
-
-    # health of a check id
-    for check in (yield from client.health.checks('serfHealth')):
-        assert check.status == 'passing'
+    checks, _ = await client.health.checks('serfHealth')
+    for check in checks:
+        assert check["Status"] == 'passing'
 
     # health of a service
-    for node in (yield from client.health.service('foo', state='any')):
-        for check in node.checks:
-            if check.id == 'service:foo':
-                assert check.status == 'passing'
+    checks, _ = await client.health.service('foo', state='any')
+    for node in checks:
+        for check in node["Checks"]:
+            if check["ID"] == 'service:foo':
+                assert check["Status"] == 'passing'
 
     # passing checks
-    for check in (yield from client.health.state('passing')):
-        assert check.status == 'passing'
+    checks, _ = await client.health.state('passing')
+    for check in checks:
+        assert check["Status"] == 'passing'
 
 
 KV and Sessions
@@ -201,34 +201,35 @@ Simple example::
     client = Consul()
 
     # set a k/v
-    yield from client.kv.set('my.key', 'my.value')
+    await client.kv.set('my.key', 'my.value')
 
     # fetch a k/v
-    obj = yield from client.kv.get('my.key')
+    obj, _ = await client.kv.get('my.key')
 
     # fetched values have a special attribute `consul`
-    assert obj.key.name == 'my.key'
+    assert obj['Key'] == 'my.key'
 
     # delete a k/v
-    yield from client.kv.delete('my.key')
+    await client.kv.delete('my.key')
 
 
 Many k/v::
 
     # list many k/v
-    for key, value in (yield from client.kv.items('')):
-        print(key, value)
+    results, _ = await client.kv.get_tree('')
+    async for obj in results:
+        print(obj['Key'], obj['Value'])
 
 
 Ephemeral k/v::
 
-    session = yield from client.sessions.create(behavior='delete')
-    yield from client.kv.create('my.key', 'my.key')
-    yield from client.sessions.delete(session)
+    session = await client.sessions.create({'Behavior': 'delete'})
+    await client.kv.lock('my.key', 'my.key', session=session)
+    await client.sessions.delete(session)
 
     try:
         # try to fetch previous k/v
-        obj = yield from client.kv.get('my.key')
+        obj = await client.kv.get('my.key')
     except client.kv.NotFound:
         # but it was destroyed with the session
         pass
@@ -243,18 +244,21 @@ ACL
     client = Consul(token=master_token)
 
     # create a token
-    token = (yield from client.acl.create('my-acl', rules=[
+    token = await client.acl.create({
+      'Name': 'my-acl',
+      'Rules': [
         ('key', '', 'read'),
         ('key', 'foo/', 'deny'),
-    ]))
+      ]
+    })
 
     # access to kv with the fresh token
     node = Consul(token=token)
-    yield from node.kv.get('foo')
+    await node.kv.get('foo')
     with pytest.raises(PermissionDenied):
-        yield from node.kv.set('foo', 'baz')
+        await node.kv.set('foo', 'baz')
     with pytest.raises(node.kv.NotFound):
-        yield from node.kv.get('foo/bar')
+        await node.kv.get('foo/bar')
 
 
 Testing
@@ -270,14 +274,6 @@ Tests rely on Consul_ binary and `py.test`_.
 3. Then run tests::
 
     py.test --cov-report html --cov aioconsul tests
-
-
-Publish to pypi
----------------
-
-::
-
-    python setup.py sdist bdist_wheel upload
 
 
 Credits

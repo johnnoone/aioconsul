@@ -1,37 +1,142 @@
 import pytest
-from aioconsul import Consul
-from conftest import async_test
+from aioconsul import Consul, ConsulError, NotFound
+from collections.abc import Mapping, Sequence
 
 
-@async_test
-def test_sessions():
-    client = Consul()
+@pytest.mark.asyncio
+async def test_endpoint(client):
+    assert repr(client.session) == "<SessionEndpoint(%r)>" % str(client.address)
 
-    # create a session
-    session1 = yield from client.sessions.create()
-    assert hasattr(session1, 'id')
 
-    # fetch data of this session
-    session2 = yield from client.sessions.get(session1)
-    assert hasattr(session2, 'id')
-    assert session1 == session2
+@pytest.mark.asyncio
+async def test_bad_uuid(client):
+    with pytest.raises(ConsulError):
+        await client.session.info("foo")
 
-    # fetch all sessions
-    sessions_a = yield from client.sessions()
-    assert len(sessions_a) == 1
-    assert session2 in sessions_a
 
-    # fetch all sessions from my node (they shoul be the same than above)
-    sessions_b = yield from client.sessions(node='my-local-node')
-    assert len(sessions_b) == 1
-    assert session2 in sessions_b
-    assert sessions_a == sessions_b
+@pytest.mark.asyncio
+async def test_bad_format(client):
+    session = "b318c74e-75a5-42e8-8f24-1065ba73f256"
+    with pytest.raises(ConsulError):
+        await client.session.create(session)
 
-    # delete the session
-    session_id = session1.id
-    deleted = yield from client.sessions.delete(session_id)
-    assert deleted
 
-    # try to refetch the session
-    with pytest.raises(client.sessions.NotFound):
-        session3 = yield from client.sessions.get(session_id)
+@pytest.mark.asyncio
+async def test_empty(client):
+    session = "b318c74e-75a5-42e8-8f24-1065ba73f256"
+
+    with pytest.raises(NotFound):
+        await client.session.info(session)
+
+    result = await client.session.destroy(session)
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_create_bad_node(client):
+    with pytest.raises(ConsulError):
+        await client.session.create({
+            "LockDelay": "15s",
+            "Name": "my-service-lock",
+            "Node": "foobar",
+            "Checks": ["a", "b", "c"],
+            "Behavior": "release",
+            "TTL": "0s"
+        })
+
+
+@pytest.mark.asyncio
+async def test_create_bad_check(client, server):
+    with pytest.raises(ConsulError):
+        await client.session.create({
+            "LockDelay": "15s",
+            "Name": "my-service-lock",
+            "Node": server.name,
+            "Checks": ["a", "b", "c"],
+            "Behavior": "release",
+            "TTL": "0s"
+        })
+
+
+@pytest.mark.asyncio
+async def test_not_node(client, server):
+    node, meta = await client.session.node("foobar")
+    assert isinstance(node, Sequence)
+    assert not node
+    "Index" in meta
+    "KnownLeader" in meta
+    "LastContact" in meta
+
+
+@pytest.mark.asyncio
+async def test_create_ok(client, server):
+    session = await client.session.create({})
+    assert isinstance(session, Mapping)
+    assert "ID" in session
+
+    info, meta = await client.session.info(session)
+    assert isinstance(info, Mapping)
+    assert info["Node"] == server.name
+    assert info["ID"] == session["ID"]
+    "Index" in meta
+    "KnownLeader" in meta
+    "LastContact" in meta
+
+    node, meta = await client.session.node(server.name)
+    assert isinstance(node, Sequence)
+    assert info == node[0]
+
+    items, meta = await client.session.items()
+    assert isinstance(items, Sequence)
+    assert info == items[0]
+
+    renew, meta = await client.session.renew(session)
+    assert isinstance(renew, Mapping)
+    assert renew["Node"] == server.name
+    assert renew["ID"] == session["ID"]
+
+    result = await client.session.destroy(session)
+    assert result is True
+
+    with pytest.raises(NotFound):
+        await client.session.renew(session)
+
+    with pytest.raises(NotFound):
+        await client.session.info(session)
+
+    node, meta = await client.session.node(server.name)
+    assert not node
+
+    sessions, meta = await client.session.items()
+    assert not sessions
+
+
+@pytest.mark.asyncio
+async def test_kv(client):
+    session = await client.session.create({})
+
+    result = await client.kv.lock("foo", b"bar", session=session)
+    assert result is True
+
+    result = await client.kv.unlock("foo", b"bar", session=session)
+    assert result is True
+
+    result = await client.session.destroy(session)
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_kv_transaction(client):
+    session = await client.session.create({})
+
+    txn = client.kv.prepare()
+    txn.lock("foo", b"bar", session=session)
+    txn.check_session("foo", session=session)
+    txn.unlock("foo", b"bar", session=session)
+    ops = await txn.execute()
+    assert isinstance(ops, Sequence)
+    assert ops[0]["Key"] == "foo"
+    assert ops[0]["Value"] is None
+
+    result = await client.session.destroy(session)
+    assert result is True

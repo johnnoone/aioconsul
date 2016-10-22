@@ -1,0 +1,5 @@
+{
+  "node_name": "server1",
+  "server": True,
+  "acl_datacenter": "dc1"
+}

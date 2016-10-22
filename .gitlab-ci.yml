@@ -1,0 +1,56 @@
+---
+
+stages:
+  - build
+  - test
+  - documentation
+  - release
+
+prepare container:
+  stage: build
+  script:
+    - docker build -t errorist/aioconsul:latest .
+  tags:
+    - docker-build
+  except:
+    - docs
+
+test:
+  stage: test
+  image: errorist/aioconsul:latest
+  script:
+    - python -m pip install -e .
+    - python -m pip install -r requirements-tests.txt
+    - py.test tests/ --cov aioconsul --cov-report term-missing --flake8
+  tags:
+    - python3.5
+  except:
+    - docs
+
+release to pypi:
+  stage: release
+  image: errorist/aioconsul:latest
+  script:
+    - python setup.py sdist bdist_wheel
+    - twine upload -u $PYPI_USER -p $PYPI_PASSWORD dist/*
+  tags:
+    - python3.5
+  only:
+    - /^v[\d\.]+.*$/
+  allow_failure: true
+
+pages:
+  stage: documentation
+  script:
+    - python -m pip install sphinx
+    - python -m pip install -r docs/requirements.txt
+    - python -m pip install -e .
+    - sphinx-build -b html docs public
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
+    - docs
+  tags:
+    - python3.5

@@ -1,0 +1,9 @@
+aiohttp==1.0.2
+async-timeout==1.0.0
+chardet==2.3.0
+flake8==3.0.4
+mccabe==0.5.2
+multidict==2.1.2
+pycodestyle==2.0.0
+pyflakes==1.2.3
+python-dateutil==2.5.3

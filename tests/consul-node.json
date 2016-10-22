@@ -1,6 +1,0 @@
-{
-  "bootstrap_expect": 1,
-  "data_dir": "/tmp/consul/server",
-  "node_name": "my-local-node",
-  "server": true
-}
