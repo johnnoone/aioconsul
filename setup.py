@@ -3,10 +3,14 @@
 from setuptools import setup, find_packages
 import versioneer
 
+with open('README.rst') as file:
+    long_description = file.read()
+
 setup(
     name="aioconsul",
+    long_description=long_description,
     version=versioneer.get_version(),
-    description='Consul wrapper for asyncio',
+    description='async/await client for the Consul HTTP API',
     author='Xavier Barbosa',
     author_email='clint.northwood@gmail.com',
     url='https://lab.errorist.zyz/aio/aioconsul',
@@ -23,8 +27,8 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Software Development :: Quality Assurance',
         'Topic :: System :: Clustering',
         'Topic :: System :: Monitoring',
@@ -37,5 +41,6 @@ setup(
         'pyhcl>=0.2.1',
         'wheel>0.25.0'
     ],
+    license='BSD',
     cmdclass=versioneer.get_cmdclass()
 )

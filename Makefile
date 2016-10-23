@@ -1,9 +1,9 @@
 install:
 	python -m pip install -q -e .
 
-test: install bin/consul
+test:
 	python -m pip install -r requirements-tests.txt
-	CONSUL_BIN=./bin/consul pytest --cov aioconsul --cov-report term-missing -v
+	pytest --cov aioconsul --cov-report term-missing -v
 
 docs:
 	python -m pip install -r docs/requirements.txt

@@ -289,4 +289,4 @@ Credits
 .. _aiohttp: http://aiohttp.readthedocs.org
 .. _asyncio: http://asyncio.org
 .. _`py.test`: http://pytest.org
-.. _documentation: http://aioconsul.readthedocs.org
+.. _documentation: http://aio.errorist.io/aioconsul

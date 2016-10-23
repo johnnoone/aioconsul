@@ -18,8 +18,8 @@ project = 'AIO Consul'
 copyright = '2016, AIO Consul'
 author = 'AIO Consul'
 
-version = '1.0.0'
-release = '1.0.0'
+version = '0.7.0'
+release = '0.7.0'
 
 language = None
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
@@ -27,7 +27,8 @@ pygments_style = 'sphinx'
 
 todo_include_todos = False
 
-html_theme = 'alabaster'
+# html_theme = 'alabaster'
+html_theme = 'irrational'
 html_theme_options = {
     'logo': 'logo.png',
     'description': "async/await client for the Consul HTTP API",

@@ -2,10 +2,12 @@
 AIOConsul
 =========
 
-AIOConsul is a Python >= 3.5 library for requesting consul_ API, build on top of asyncio_ and aiohttp_.
+AIOConsul is a Python >= 3.5 library for requesting consul_ API, build on top
+of asyncio_ and aiohttp_.
 
 Currently, this library aims a full compatibility with consul 0.7.
 
+Sources are available at https://lab.errorist.xyz/aio/aioconsul.
 
 Installation
 ------------
