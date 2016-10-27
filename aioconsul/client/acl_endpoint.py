@@ -1,8 +1,8 @@
 from .bases import EndpointBase
-from aioconsul.common import extract_id
+from aioconsul.api import consul, extract_meta
 from aioconsul.encoders import encode_hcl, decode_hcl
 from aioconsul.exceptions import NotFound
-from aioconsul.structures import consul, extract_meta
+from aioconsul.util import extract_attr
 
 
 class ACLEndpoint(EndpointBase):
@@ -102,11 +102,11 @@ class ACLEndpoint(EndpointBase):
         """Destroys a given token.
 
         Parameters:
-            token (ObjectID): the token ID
+            token (ObjectID): Token ID
         Returns:
             bool: ``True`` on success
         """
-        token_id = extract_id(token)
+        token_id = extract_attr(token, keys=["ID"])
         response = await self._api.put("/v1/acl/destroy", token_id)
         return response.body
 
@@ -114,7 +114,7 @@ class ACLEndpoint(EndpointBase):
         """Queries the policy of a given token.
 
         Parameters:
-            token (ObjectID): the token ID
+            token (ObjectID): Token ID
         Returns:
             ObjectMeta: where value is token
         Raises:
@@ -140,7 +140,7 @@ class ACLEndpoint(EndpointBase):
                 }
             }
         """
-        token_id = extract_id(token)
+        token_id = extract_attr(token, keys=["ID"])
         response = await self._api.get("/v1/acl/info", token_id)
         try:
             result = response.body[0]
@@ -153,7 +153,7 @@ class ACLEndpoint(EndpointBase):
         """Creates a new token by cloning an existing token
 
         Parameters:
-            token (ObjectID): the token ID
+            token (ObjectID): Token ID
         Returns:
             ObjectMeta: where value is token ID
 
@@ -167,7 +167,7 @@ class ACLEndpoint(EndpointBase):
                 "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
             }
         """
-        token_id = extract_id(token)
+        token_id = extract_attr(token, keys=["ID"])
         response = await self._api.put("/v1/acl/clone", token_id)
         return consul(response)
 
@@ -261,7 +261,6 @@ class ACLEndpoint(EndpointBase):
         "0001-01-01T00:00:00Z" will be present if no sync has resulted in an
         error.
         """
-        response = await self._api.get("/v1/acl/replication", params={
-            "dc": dc})
-
+        params = {"dc": dc}
+        response = await self._api.get("/v1/acl/replication", params=params)
         return response.body

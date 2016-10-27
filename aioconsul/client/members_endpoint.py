@@ -1,5 +1,5 @@
 from .bases import EndpointBase
-from aioconsul.common import extract_id
+from aioconsul.util import extract_attr
 
 
 class MembersEndpoint(EndpointBase):
@@ -62,7 +62,7 @@ class MembersEndpoint(EndpointBase):
         """Forces removal of a node
 
         Parameters:
-            node (ObjectID): name of node
+            node (ObjectID): Node name
         Returns:
             bool: ``True`` on success
 
@@ -73,6 +73,6 @@ class MembersEndpoint(EndpointBase):
         be cleaned up. Forcing a node into the ``left`` state allows its old
         entries to be removed.
         """
-        node_id = extract_id(node, keys=["Node", "ID"])
+        node_id = extract_attr(node, keys=["Node", "ID"])
         response = await self._get("/v1/agent/force-leave", node_id)
         return response.status == 200

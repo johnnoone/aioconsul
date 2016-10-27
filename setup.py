@@ -13,7 +13,7 @@ setup(
     description='async/await client for the Consul HTTP API',
     author='Xavier Barbosa',
     author_email='clint.northwood@gmail.com',
-    url='https://lab.errorist.zyz/aio/aioconsul',
+    url='http://aio.errorist.io/aioconsul',
     packages=find_packages(),
     keywords=[
         'infrastructure',

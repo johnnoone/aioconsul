@@ -3,6 +3,14 @@ Client reference
 
 .. currentmodule:: aioconsul.client
 
+This is a high-level client for Consul_ HTTP API, intended to have
+less friction between Python idiom and Consul API.
+API endpoints are organised by Python endpoints, each reachable by it's
+client property.
+
+If needed, you can use the :class:`~aioconsul.api.API` directly.
+
+
 .. autoclass:: aioconsul.client.Consul
     :no-members:
     :no-undoc-members:
@@ -101,3 +109,6 @@ Client reference
 
         See :ref:`status_endpoint` for examples
         and :class:`aioconsul.client.StatusEndpoint` for implementation.
+
+
+.. _Consul: https://www.consul.io

@@ -3,6 +3,11 @@ Raw API
 
 .. currentmodule:: aioconsul.api
 
+This is a low-level wrapper of Consul_ HTTP API, intended to be the most
+simple.
+
+
+
 .. autoclass:: aioconsul.api.API
     :no-members:
     :no-undoc-members:
@@ -160,3 +165,5 @@ Raw API
 .. autoclass:: aioconsul.api.ConsulError
 .. autoclass:: aioconsul.api.NotFound
 .. autoclass:: aioconsul.api.UnauthorizedError
+
+.. _Consul: https://www.consul.io

@@ -1,14 +1,16 @@
-from aioconsul.common import RequestHandler
+import json
+import logging
+from aioconsul.common import RequestHandler, Response
 from aioconsul.exceptions import (ConflictError,
                                   ConsulError,
                                   NotFound,
                                   UnauthorizedError)
-from aioconsul.common import decode_watch, Response  # noqa
-from aioconsul.structures import consul
+from aioconsul.util import extract_attr
+from collections import namedtuple
 from collections.abc import Mapping
-import logging
+from functools import singledispatch
 
-__all__ = ["API"]
+__all__ = ["API", "consul"]
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +38,8 @@ class API:
 
     Attributes:
         token (str): Token ID
-        consistency (str): accept one of these values:
-                           ``default``, ``consistent`` or ``stale``
+        consistency (Consistency): One of the value as defined by
+                                   :class:`~aioconsul.typing.Consistency`
     """
 
     def __init__(self, address, *, token=None, consistency=None, loop=None):
@@ -79,16 +81,16 @@ class API:
         params = kwargs.setdefault("params", {})
         watch = kwargs.pop("watch", None)
         if watch:
-            index, wait = decode_watch(watch)
+            index, wait = extract_blocking(watch)
             params.update({
                 "index": index,
                 "wait": wait
             })
         consistency = kwargs.pop("consistency", None)
-        if consistency:
+        if consistency is not None:
             params.pop("stale", None)
             params.pop("consistent", None)
-            params[consistency] = True
+            params["consistent" if consistency else "stale"] = True
 
         response = await self.req_handler.request(method, path, **kwargs)
         return render(response)
@@ -102,3 +104,54 @@ def flatten_path(path):
         path = ''.join(flatten_path(p) for p in path)
     path = '/%s' % path
     return path.replace('//', '/')
+
+
+def extract_blocking(obj):
+    """Extract index and watch from :class:`Blocking`.
+
+    Parameters:
+        obj (Blocking): the blocking object
+    Returns:
+        tuple: index and watch
+    """
+    if isinstance(obj, tuple):
+        try:
+            a, b = obj
+        except:
+            raise TypeError("Not a Blocking object")
+    else:
+        a, b = obj, None
+    return extract_attr(a, keys=["Index"]), b
+
+
+ConsulValue = namedtuple('ConsulValue', 'value meta')
+
+
+@singledispatch
+def consul(obj, meta=None):
+    meta = meta or {}
+    return ConsulValue(obj, meta=meta)
+
+
+@consul.register(Response)
+def consul_response(obj, meta=None):
+    meta = meta or {}
+    for k, v in extract_meta(obj.headers).items():
+        meta.setdefault(k, v)
+    return ConsulValue(obj.body, meta=meta)
+
+
+def extract_meta(headers):
+    meta = {}
+    for k, v in headers.items():
+        if k.lower().startswith("x-consul-"):
+            k = k[9:]
+            k = {
+                'index': 'Index',
+                'knownleader': 'KnownLeader',
+                'lastcontact': 'LastContact',
+                'token': 'Token',
+                'translate-addresses': 'Translate-Addresses',
+            }.get(k.lower(), k)
+            meta[k] = json.loads(v)
+    return meta

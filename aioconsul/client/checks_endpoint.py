@@ -1,5 +1,5 @@
 from .bases import EndpointBase
-from aioconsul.common import extract_id
+from aioconsul.util import extract_attr
 
 
 class ChecksEndpoint(EndpointBase):
@@ -36,7 +36,7 @@ class ChecksEndpoint(EndpointBase):
 
         Parameters:
             check (Object): Check definition
-            token (ObjectID): token ID
+            token (ObjectID): Token ID
         Returns:
             bool: ``True`` on success
 
@@ -115,22 +115,24 @@ class ChecksEndpoint(EndpointBase):
         The **Status** field can be provided to specify the initial state of
         the health check.
         """
-        token_id = extract_id(token)
+        token_id = extract_attr(token, keys=["ID"])
+        params = {"token": token_id}
         response = await self._api.put("/v1/agent/check/register",
-                                       params={"token": token_id}, json=check)
+                                       params=params,
+                                       json=check)
         return response.status == 200
 
     async def deregister(self, check):
         """Deregisters a local check
 
         Parameters:
-            check (ObjectID): check ID
+            check (ObjectID): Check ID
         Returns:
             bool: ``True`` on success
 
         The agent will take care of deregistering the check from the Catalog.
         """
-        check_id = extract_id(check, ["CheckID", "ID"])
+        check_id = extract_attr(check, keys=["CheckID", "ID"])
         response = await self._api.get("/v1/agent/check/deregister", check_id)
         return response.status == 200
 
@@ -138,7 +140,7 @@ class ChecksEndpoint(EndpointBase):
         """Marks a local check as passing
 
         Parameters:
-            note (str): associate a human-readable message with the status
+            note (str): Associate a human-readable message with the status
                         of the check
         Returns:
             bool: ``True`` on success
@@ -149,7 +151,7 @@ class ChecksEndpoint(EndpointBase):
         """Marks a local check as warning
 
         Parameters:
-            note (str): associate a human-readable message with the status
+            note (str): Associate a human-readable message with the status
                         of the check
         Returns:
             bool: ``True`` on success
@@ -160,7 +162,7 @@ class ChecksEndpoint(EndpointBase):
         """Marks a local check as critical
 
         Parameters:
-            note (str): associate a human-readable message with the status
+            note (str): Associate a human-readable message with the status
                         of the check
         Returns:
             bool: ``True`` on success
@@ -170,7 +172,7 @@ class ChecksEndpoint(EndpointBase):
     async def mark(self, check, status, *, note=None):
         """Marks a local check as passing, warning or critical
         """
-        check_id = extract_id(check, ["CheckID", "ID"])
+        check_id = extract_attr(check, keys=["CheckID", "ID"])
         data = {
             "Status": status,
             "Output": note

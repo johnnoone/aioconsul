@@ -1,7 +1,7 @@
 from .bases import EndpointBase
-from aioconsul.common import extract_id, extract_index
+from aioconsul.api import consul, extract_meta
 from aioconsul.encoders import decode_value, encode_value
-from aioconsul.structures import consul, extract_meta
+from aioconsul.util import extract_attr
 
 
 class ReadMixin:
@@ -19,8 +19,8 @@ class ReadMixin:
         Parameters:
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         """
         response = await self._api.get(
             "/v1/kv", path,
@@ -44,8 +44,8 @@ class ReadMixin:
             separator (str): List only up to a given separator
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             CollectionMeta: where value is list of keys
 
@@ -71,8 +71,8 @@ class ReadMixin:
 
         Parameters:
             key (str): Key to fetch
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             ObjectMeta: where value is the queried kv value
 
@@ -107,7 +107,8 @@ class ReadMixin:
         entry. Clients can choose to use this however makes sense for their
         application.
 
-        **Value** is a python object, depends on **Flags**.
+        **Value** is a :class:`~aioconsul.typing.Payload` object,
+        it depends on **Flags**.
         """
         response = await self._read(key,
                                     dc=dc,
@@ -124,8 +125,8 @@ class ReadMixin:
             key (str): Key to fetch
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             ObjectMeta: where value is the raw value
         """
@@ -145,8 +146,8 @@ class ReadMixin:
             separator (str): List only up to a given separator
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             CollectionMeta: where value is a list of values
 
@@ -173,7 +174,7 @@ class WriteMixin:
 
         Parameters:
             key (str): Key to set
-            value (object): Value to set, It will be encoded by flags
+            value (Payload): Value to set, It will be encoded by flags
             flags (int): Flags to set with value
         Returns:
             bool: ``True`` on success
@@ -187,7 +188,7 @@ class WriteMixin:
 
         Parameters:
             key (str): Key to set
-            value (object): Value to set, It will be encoded by flags
+            value (Payload): Value to set, It will be encoded by flags
             index (ObjectIndex): Index ID
             flags (int): Flags to set with value
         Response:
@@ -201,7 +202,7 @@ class WriteMixin:
         matches the ModifyIndex of that key.
         """
         value = encode_value(value, flags)
-        index = extract_index(index)
+        index = extract_attr(index, keys=["ModifyIndex", "Index"])
         response = await self._write(key, value, flags=flags, cas=index)
         return response.body is True
 
@@ -210,8 +211,9 @@ class WriteMixin:
 
         Parameters:
             key (str): Key to set
-            value (object): Value to set, It will be encoded by flags
+            value (Payload): Value to set, It will be encoded by flags
             session (ObjectID): Session ID
+            flags (int): Flags to set with value
         Response:
             bool: ``True`` on success
 
@@ -219,7 +221,7 @@ class WriteMixin:
         other session has it locked
         """
         value = encode_value(value, flags)
-        session_id = extract_id(session)
+        session_id = extract_attr(session, keys=["ID"])
         response = await self._write(key, value,
                                      flags=flags,
                                      acquire=session_id)
@@ -230,8 +232,9 @@ class WriteMixin:
 
         Parameters:
             key (str): Key to set
-            value (object): Value to set, It will be encoded by flags
+            value (Payload): Value to set, It will be encoded by flags
             session (ObjectID): Session ID
+            flags (int): Flags to set with value
         Response:
             bool: ``True`` on success
 
@@ -239,7 +242,7 @@ class WriteMixin:
         currently has it locked.
         """
         value = encode_value(value, flags)
-        session_id = extract_id(session)
+        session_id = extract_attr(session, keys=["ID"])
         response = await self._write(key, value,
                                      flags=flags,
                                      release=session_id)
@@ -248,6 +251,7 @@ class WriteMixin:
     async def _write(self, path, data, *,
                      flags=None, cas=None, acquire=None, release=None):
         """Sets the key to the given value.
+
         Returns:
             bool: ``True`` on success
         """
@@ -302,7 +306,7 @@ class DeleteMixin:
         The Key will only be deleted if its current modify index matches the
         supplied Index.
         """
-        index = extract_index(index)
+        index = extract_attr(index, keys=["ModifyIndex", "Index"])
         response = await self._discard(key, cas=index)
         return response.body is True
 
@@ -349,7 +353,7 @@ class KVOperations(EndpointBase):
 
         Parameters:
             key (str): Key to set
-            value (object): Value to set, It will be encoded by flags
+            value (Payload): Value to set, It will be encoded by flags
             flags (int): Flags to set with value
         """
         self.append({
@@ -365,7 +369,7 @@ class KVOperations(EndpointBase):
 
         Parameters:
             key (str): Key to set
-            value (object): Value to set, It will be encoded by flags
+            value (Payload): Value to set, It will be encoded by flags
             index (ObjectIndex): Index ID
             flags (int): Flags to set with value
 
@@ -377,7 +381,7 @@ class KVOperations(EndpointBase):
             "Key": key,
             "Value": encode_value(value, flags, base64=True).decode("utf-8"),
             "Flags": flags,
-            "Index": extract_index(index)
+            "Index": extract_attr(index, keys=["ModifyIndex", "Index"])
         })
         return self
 
@@ -386,7 +390,7 @@ class KVOperations(EndpointBase):
 
         Parameters:
             key (str): Key to set
-            value (object): Value to set, It will be encoded by flags
+            value (Payload): Value to set, It will be encoded by flags
             session (ObjectID): Session ID
 
         The Key will only be set if its current modify index matches the
@@ -397,7 +401,7 @@ class KVOperations(EndpointBase):
             "Key": key,
             "Value": encode_value(value, flags, base64=True).decode("utf-8"),
             "Flags": flags,
-            "Session": extract_id(session)
+            "Session": extract_attr(session, keys=["ID"])
         })
         return self
 
@@ -406,7 +410,7 @@ class KVOperations(EndpointBase):
 
         Parameters:
             key (str): Key to set
-            value (object): Value to set, It will be encoded by flags
+            value (Payload): Value to set, It will be encoded by flags
             session (ObjectID): Session ID
 
         The Key will only release the lock if the Session is valid and
@@ -417,7 +421,7 @@ class KVOperations(EndpointBase):
             "Key": key,
             "Value": encode_value(value, flags, base64=True).decode("utf-8"),
             "Flags": flags,
-            "Session": extract_id(session)
+            "Session": extract_attr(session, keys=["ID"])
         })
         return self
 
@@ -426,8 +430,8 @@ class KVOperations(EndpointBase):
 
         Parameters:
             key (str): Key to fetch
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
 
         This fails the transaction if the Key doesn't exist. The key may not
         be present in the results if ACLs do not permit it to be read.
@@ -446,8 +450,8 @@ class KVOperations(EndpointBase):
             separator (str): List only up to a given separator
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
 
         This does not fail the transaction if the Key doesn't exist. Not all
         keys may be present in the results if ACLs do not permit them to be
@@ -470,7 +474,7 @@ class KVOperations(EndpointBase):
         self.append({
             "Verb": "check-index",
             "Key": key,
-            "Index": extract_index(index)
+            "Index": extract_attr(index, keys=["ModifyIndex", "Index"])
         })
         return self
 
@@ -484,7 +488,7 @@ class KVOperations(EndpointBase):
         self.append({
             "Verb": "check-session",
             "Key": key,
-            "Session": extract_id(session)
+            "Session": extract_attr(session, keys=["ID"])
         })
         return self
 
@@ -526,7 +530,7 @@ class KVOperations(EndpointBase):
         self.append({
             "Verb": "delete-cas",
             "Key": key,
-            "Index": extract_index(index)
+            "Index": extract_attr(index, keys=["ModifyIndex", "Index"])
         })
         return self
 
@@ -540,7 +544,7 @@ class KVOperations(EndpointBase):
         Returns:
             Collection: Results of operations.
         """
-        token_id = extract_id(token)
+        token_id = extract_attr(token, keys=["ID"])
         try:
             response = await self._api.put(
                 "/v1/txn",

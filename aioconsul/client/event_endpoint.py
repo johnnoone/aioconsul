@@ -1,6 +1,8 @@
+import re
 from .bases import EndpointBase
+from aioconsul.api import consul, extract_meta
 from aioconsul.encoders import decode_value, encode_value
-from aioconsul.structures import consul, extract_meta
+from aioconsul.util import extract_pattern
 
 
 class EventEndpoint(EndpointBase):
@@ -11,10 +13,10 @@ class EventEndpoint(EndpointBase):
 
         Parameters:
             name (str): Event name
-            payload (bytes): Opaque data
-            node (str): Regular expression to filter by node name
-            service (str): Regular expression to filter by service
-            tag (str): Regular expression to filter by service tags
+            payload (Payload): Opaque data
+            node (Filter): Regular expression to filter by node name
+            service (Filter): Regular expression to filter by service
+            tag (Filter): Regular expression to filter by service tags
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
         Returns:
@@ -26,7 +28,7 @@ class EventEndpoint(EndpointBase):
                 "ID": "b54fe110-7af5-cafc-d1fb-afc8ba432b1c",
                 "Name": "deploy",
                 "Payload": None,
-                "NodeFilter": "",
+                "NodeFilter": re.compile("node-\d+"),
                 "ServiceFilter": "",
                 "TagFilter": "",
                 "Version": 1,
@@ -39,11 +41,14 @@ class EventEndpoint(EndpointBase):
             payload = encode_value(payload)
 
         path = "/v1/event/fire/%s" % name
-        response = await self._api.put(path, data=payload, params={
-            "dc": dc, "node": node, "service": service, "tag": tag})
-        result = response.body
-        if result["Payload"] is not None:
-            result["Payload"] = decode_value(result["Payload"])
+        params = {
+            "dc": dc,
+            "node": extract_pattern(node),
+            "service": extract_pattern(service),
+            "tag": extract_pattern(tag)
+        }
+        response = await self._api.put(path, data=payload, params=params)
+        result = format_event(response.body)
         return result
 
     async def items(self, name=None, *, watch=None):
@@ -51,7 +56,7 @@ class EventEndpoint(EndpointBase):
 
         Parameters:
             name (str): Filter events by name.
-            watch (Blocking): do a blocking query
+            watch (Blocking): Do a blocking query
         Returns:
             CollectionMeta: where value is a list of events
 
@@ -62,7 +67,7 @@ class EventEndpoint(EndpointBase):
                     "ID": "b54fe110-7af5-cafc-d1fb-afc8ba432b1c",
                     "Name": "deploy",
                     "Payload": bytes("abcd"),
-                    "NodeFilter": "",
+                    "NodeFilter": re.compile("node-\d+"),
                     "ServiceFilter": "",
                     "TagFilter": "",
                     "Version": 1,
@@ -72,10 +77,17 @@ class EventEndpoint(EndpointBase):
             ]
         """
         path = "/v1/event/list"
-        response = await self._api.get(path, params={
-            "name": name}, watch=watch)
-        result = response.body
-        for data in result:
-            if data["Payload"] is not None:
-                data["Payload"] = decode_value(data["Payload"])
-        return consul(result, meta=extract_meta(response.headers))
+        params = {"name": name}
+        response = await self._api.get(path, params=params, watch=watch)
+        results = [format_event(data) for data in response.body]
+        return consul(results, meta=extract_meta(response.headers))
+
+
+def format_event(obj):
+    result = {}
+    result.update(obj)
+    if obj["Payload"] is not None:
+        result["Payload"] = decode_value(obj["Payload"])
+    for key in ("NodeFilter", "ServiceFilter", "TagFilter"):
+        result[key] = re.compile(obj[key]) if obj.get(key) else None
+    return result

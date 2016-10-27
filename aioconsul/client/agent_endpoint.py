@@ -87,22 +87,22 @@ class AgentEndpoint(EndpointBase):
         """Enters maintenance mode
 
         Parameters:
-            reason (str): reason of disabling
+            reason (str): Reason of disabling
         Returns:
             bool: ``True`` on success
         """
-        response = await self._api.put("/v1/agent/maintenance", params={
-            "enable": True, "reason": reason})
+        params = {"enable": True, "reason": reason}
+        response = await self._api.put("/v1/agent/maintenance", params=params)
         return response.status == 200
 
     async def enable(self, reason=None):
         """Resumes normal operation
 
         Parameters:
-            reason (str): reason of enabling
+            reason (str): Reason of enabling
         Returns:
             bool: ``True`` on success
         """
-        response = await self._api.put("/v1/agent/maintenance", params={
-            "enable": False, "reason": reason})
+        params = {"enable": False, "reason": reason}
+        response = await self._api.put("/v1/agent/maintenance", params=params)
         return response.status == 200

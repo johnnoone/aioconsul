@@ -4,7 +4,7 @@ def prepare_node(data):
     """Prepare node for catalog endpoint
 
     Parameters:
-        data (Union[str, dict]): node ID or node definition
+        data (Union[str, dict]): Node ID or node definition
     Returns:
         Tuple[str, dict]: where first is ID and second is node definition
 
@@ -50,7 +50,7 @@ def prepare_service(data):
     """Prepare service for catalog endpoint
 
     Parameters:
-        data (Union[str, dict]): service ID or service definition
+        data (Union[str, dict]): Service ID or service definition
     Returns:
         Tuple[str, dict]: str is ID and dict is service
 
@@ -129,7 +129,7 @@ def prepare_check(data):
     """Prepare check for catalog endpoint
 
     Parameters:
-        data (Union[str, dict]): check ID or check definition
+        data (Object or ObjectID): Check ID or check definition
     Returns:
         Tuple[str, dict]: where first is ID and second is check definition
     """

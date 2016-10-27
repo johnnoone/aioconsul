@@ -1,5 +1,5 @@
 from .bases import EndpointBase
-from aioconsul.common import extract_id
+from aioconsul.util import extract_attr
 
 
 class ServicesEndpoint(EndpointBase):
@@ -119,7 +119,7 @@ class ServicesEndpoint(EndpointBase):
         """Deregisters a local service
 
         Parameters:
-            service (ObjectID): service ID
+            service (ObjectID): Service ID
         Returns:
             bool: ``True`` on success
 
@@ -127,7 +127,7 @@ class ServicesEndpoint(EndpointBase):
         agent. The agent will take care of deregistering the service with the
         Catalog. If there is an associated check, that is also deregistered.
         """
-        service_id = extract_id(service, keys=["ServiceID", "ID"])
+        service_id = extract_attr(service, keys=["ServiceID", "ID"])
         response = await self._api.get(
             "/v1/agent/service/deregister", service_id)
         return response.status == 200
@@ -136,8 +136,8 @@ class ServicesEndpoint(EndpointBase):
         """Enters maintenance mode for service
 
         Parameters:
-            service (ObjectID): service ID
-            reason (str): text string explaining the reason for placing the
+            service (ObjectID): Service ID
+            reason (str): Text string explaining the reason for placing the
                           service into maintenance mode.
         Returns:
             bool: ``True`` on success
@@ -155,8 +155,8 @@ class ServicesEndpoint(EndpointBase):
         """Resumes normal operation for service
 
         Parameters:
-            service (ObjectID): service ID
-            reason (str): text string explaining the reason for placing the
+            service (ObjectID): Service ID
+            reason (str): Text string explaining the reason for placing the
                           service into normal mode.
         Returns:
             bool: ``True`` on success
@@ -167,14 +167,14 @@ class ServicesEndpoint(EndpointBase):
         """Enters maintenance mode / Resumes normal operation for service
 
         Parameters:
-            service (ObjectID): service ID
-            enable (bool): enter / exit maintenance mode
-            reason (str): text string explaining the reason for placing the
+            service (ObjectID): Service ID
+            enable (bool): Enter or exit maintenance mode
+            reason (str): Text string explaining the reason for placing the
                           service into normal mode.
         Returns:
             bool: ``True`` on success
         """
-        service_id = extract_id(service, keys=["ServiceID", "ID"])
+        service_id = extract_attr(service, keys=["ServiceID", "ID"])
         response = await self._api.put(
             "/v1/agent/service/maintenance", service_id,
             params={"enable": enable, "reason": reason})

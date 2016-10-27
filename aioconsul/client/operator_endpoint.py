@@ -1,5 +1,5 @@
 from .bases import EndpointBase
-from aioconsul.common import extract_address
+from aioconsul.util import extract_attr
 
 
 class OperatorEndpoint(EndpointBase):
@@ -87,7 +87,7 @@ class OperatorEndpoint(EndpointBase):
         to the cluster. This endpoint can be used to remove the failed server
         so that it is no longer affects the Raft quorum.
         """
-        address = extract_address(address)
+        address = extract_attr(address, keys=["Address"])
         response = await self._api.delete(
             "/v1/operator/raft/peer",
             params={"dc": dc, "address": address})

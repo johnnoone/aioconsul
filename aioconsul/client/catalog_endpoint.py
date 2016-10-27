@@ -1,7 +1,7 @@
 from .bases import EndpointBase
 from .util import prepare_node, prepare_service, prepare_check
-from aioconsul.common import extract_id
-from aioconsul.structures import consul
+from aioconsul.api import consul
+from aioconsul.util import extract_attr
 
 
 class CatalogEndpoint(EndpointBase):
@@ -45,8 +45,8 @@ class CatalogEndpoint(EndpointBase):
         Parameters:
             node (Object): Node definition
             check (Object): Check definition
-            service (Object or ObjectID): service
-            write_token (ObjectID): token ID
+            service (Object or ObjectID): Service
+            write_token (ObjectID): Token ID
         Returns:
             bool: ``True`` on success
 
@@ -130,7 +130,7 @@ class CatalogEndpoint(EndpointBase):
         neither, or both.
 
         An optional ACL token may be provided to perform the registration by
-        including a **WriteRequest** block in the query payload, like this::
+        including a **WriteRequest** block in the query, like this::
 
             {
                 "WriteRequest": {
@@ -145,7 +145,7 @@ class CatalogEndpoint(EndpointBase):
             check["Node"] = node_id
         if check and service_id:
             check["ServiceID"] = service_id
-        token = extract_id(write_token)
+        token = extract_attr(write_token, keys=["ID"])
         entry = node
         if service:
             entry["Service"] = service
@@ -162,7 +162,7 @@ class CatalogEndpoint(EndpointBase):
         """Deregisters a node
 
         Parameters:
-            node (ObjectID): node ID
+            node (ObjectID): Node ID
         Returns:
             bool: ``True`` on success
         """
@@ -172,8 +172,8 @@ class CatalogEndpoint(EndpointBase):
         """Deregisters a check
 
         Parameters:
-            node (ObjectID): node ID
-            check (ObjectID): check ID
+            node (ObjectID): Node ID
+            check (ObjectID): Check ID
         Returns:
             bool: ``True`` on success
         """
@@ -183,8 +183,8 @@ class CatalogEndpoint(EndpointBase):
         """Deregisters a service
 
         Parameters:
-            node (ObjectID): node ID
-            service (ObjectID): service ID
+            node (ObjectID): Node ID
+            service (ObjectID): Service ID
         Returns:
             bool: ``True`` on success
         """
@@ -195,10 +195,10 @@ class CatalogEndpoint(EndpointBase):
         """Deregisters a node, service or check
 
         Parameters:
-            node (Object or ObjectID): node
-            check (ObjectID): check ID
-            service (ObjectID): service ID
-            write_token (ObjectID): token ID
+            node (Object or ObjectID): Node
+            check (ObjectID): Check ID
+            service (ObjectID): Service ID
+            write_token (ObjectID): Token ID
         Returns:
             bool: ``True`` on success
 
@@ -234,7 +234,7 @@ class CatalogEndpoint(EndpointBase):
         check (if any) are removed.
 
         An optional ACL token may be provided to perform the deregister action
-        by adding a **WriteRequest** block to the payload, like this::
+        by adding a **WriteRequest** block in the query, like this::
 
             {
                 "WriteRequest": {
@@ -250,8 +250,8 @@ class CatalogEndpoint(EndpointBase):
                       "ServiceID", "WriteRequest"):
                 if k in node:
                     entry[k] = node[k]
-        service_id = extract_id(service, keys=["ServiceID", "ID"])
-        check_id = extract_id(check, keys=["CheckID", "ID"])
+        service_id = extract_attr(service, keys=["ServiceID", "ID"])
+        check_id = extract_attr(check, keys=["CheckID", "ID"])
         if service_id and not check_id:
             entry["ServiceID"] = service_id
         elif service_id and check_id:
@@ -260,7 +260,7 @@ class CatalogEndpoint(EndpointBase):
             entry["CheckID"] = check_id
         if write_token:
             entry["WriteRequest"] = {
-                "Token": extract_id(write_token)
+                "Token": extract_attr(write_token, keys=["ID"])
             }
         response = await self._api.put("/v1/catalog/deregister", json=entry)
         return response.status == 200
@@ -294,8 +294,8 @@ class CatalogEndpoint(EndpointBase):
                       Defaults to the agent's local datacenter.
             near (str): Sort the node list in ascending order based on the
                         estimated round trip time from that node.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             CollectionMeta: where value is a list
 
@@ -320,8 +320,11 @@ class CatalogEndpoint(EndpointBase):
               }
             ]
         """
-        response = await self._api.get("/v1/catalog/nodes", params={
-            "dc": dc, "near": near}, watch=watch, consistency=consistency)
+        params = {"dc": dc, "near": near}
+        response = await self._api.get("/v1/catalog/nodes",
+                                       params=params,
+                                       watch=watch,
+                                       consistency=consistency)
         return consul(response)
 
     async def services(self, *, dc=None, watch=None, consistency=None):
@@ -330,8 +333,8 @@ class CatalogEndpoint(EndpointBase):
         Parameters:
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             ObjectMeta: where value is a dict
 
@@ -349,8 +352,11 @@ class CatalogEndpoint(EndpointBase):
         The keys are the service names, and the array values provide all known
         tags for a given service.
         """
-        response = await self._api.get("/v1/catalog/services", params={
-            "dc": dc}, watch=watch, consistency=consistency)
+        params = {"dc": dc}
+        response = await self._api.get("/v1/catalog/services",
+                                       params=params,
+                                       watch=watch,
+                                       consistency=consistency)
         return consul(response)
 
     async def service(self, service, *,
@@ -359,15 +365,15 @@ class CatalogEndpoint(EndpointBase):
         """Lists the nodes providing a service in a given datacenter
 
         Parameters:
-            service (ObjectID): service ID
+            service (ObjectID): Service ID
             tag (str): Filter the list by tag.
                        By default all nodes in that service are returned.
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
             near (str): Sort the node list in ascending order based on
                         the estimated round trip time from that node.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             CollectionMeta: where value is a list of nodes/services
 
@@ -385,22 +391,24 @@ class CatalogEndpoint(EndpointBase):
               }
             ]
         """
-        service_id = extract_id(service, keys=["ServiceID", "ID"])
+        service_id = extract_attr(service, keys=["ServiceID", "ID"])
+        params = {"dc": dc, "tag": tag, "near": near}
         response = await self._api.get(
             "/v1/catalog/service", service_id,
-            params={"dc": dc, "tag": tag, "near": near},
-            watch=watch, consistency=consistency)
+            params=params,
+            watch=watch,
+            consistency=consistency)
         return consul(response)
 
     async def node(self, node, *, dc=None, watch=None, consistency=None):
         """Lists the services provided by a node
 
         Parameters:
-            node (ObjectID): the node ID
+            node (ObjectID): Node ID
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             ObjectMeta: where value is node or None if does not exists
 
@@ -431,8 +439,10 @@ class CatalogEndpoint(EndpointBase):
               }
             }
         """
-        node_id = extract_id(node, keys=["Node", "ID"])
-
-        response = await self._api.get("/v1/catalog/node/", node_id, params={
-            "dc": dc}, watch=watch, consistency=consistency)
+        node_id = extract_attr(node, keys=["Node", "ID"])
+        params = {"dc": dc}
+        response = await self._api.get("/v1/catalog/node/", node_id,
+                                       params=params,
+                                       watch=watch,
+                                       consistency=consistency)
         return consul(response)

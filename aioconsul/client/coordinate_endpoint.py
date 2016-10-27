@@ -1,5 +1,5 @@
 from .bases import EndpointBase
-from aioconsul.structures import consul
+from aioconsul.api import consul
 
 
 class CoordinateEndpoint(EndpointBase):
@@ -53,8 +53,8 @@ class CoordinateEndpoint(EndpointBase):
         Parameters:
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             CollectionMeta: where value is a list of node / coord
 
@@ -77,6 +77,9 @@ class CoordinateEndpoint(EndpointBase):
             ]
         """
         path = "/v1/coordinate/nodes"
-        response = await self._api.get(path, params={
-            "dc": dc}, watch=watch, consistency=consistency)
+        params = {"dc": dc}
+        response = await self._api.get(path,
+                                       params=params,
+                                       watch=watch,
+                                       consistency=consistency)
         return consul(response)

@@ -1,5 +1,5 @@
 from .bases import EndpointBase
-from aioconsul.common import extract_id
+from aioconsul.util import extract_attr
 
 
 class QueryEndpoint(EndpointBase):
@@ -18,8 +18,8 @@ class QueryEndpoint(EndpointBase):
         Parameters:
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             Collection: List of prepared queries
 
@@ -181,14 +181,14 @@ class QueryEndpoint(EndpointBase):
             query (ObjectID): Query ID
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             Object: Query definition
         Raises:
             NotFound: Query does not exist
         """
-        query_id = extract_id(query)
+        query_id = extract_attr(query, keys=["ID"])
 
         response = await self._api.get("/v1/query", query_id, params={
             "dc": dc}, watch=watch, consistency=consistency)
@@ -205,7 +205,7 @@ class QueryEndpoint(EndpointBase):
         Returns:
             bool: ``True`` on success
         """
-        query_id = extract_id(query)
+        query_id = extract_attr(query, keys=["ID"])
         response = await self._api.put("/v1/query", query_id,
                                        params={"dc": dc}, json=query)
         return response.status == 200
@@ -220,7 +220,7 @@ class QueryEndpoint(EndpointBase):
         Results:
             bool: ``True`` on success
         """
-        query_id = extract_id(query)
+        query_id = extract_attr(query, keys=["ID"])
         response = await self._api.delete("/v1/query", query_id,
                                           params={"dc": dc})
         return response.status == 200
@@ -235,8 +235,8 @@ class QueryEndpoint(EndpointBase):
                       Defaults to the agent's local datacenter.
             near (str): Sort the resulting list in ascending order based on
                         the estimated round trip time from that node
-            limit (int): limit the list's size to the given number of nodes
-            consistency (Consistency): force consistency
+            limit (int): Limit the list's size to the given number of nodes
+            consistency (Consistency): Force consistency
         Returns:
             Object:
         Raises:
@@ -311,7 +311,7 @@ class QueryEndpoint(EndpointBase):
         operations where there were healthy nodes found in the local
         datacenter.
         """
-        query_id = extract_id(query)
+        query_id = extract_attr(query, keys=["ID"])
         response = await self._api.get(
             "/v1/query/%s/execute" % query_id,
             params={"dc": dc, "near": near, "limit": limit},
@@ -325,14 +325,14 @@ class QueryEndpoint(EndpointBase):
             query (ObjectID): Query ID
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             Object: the query
         Raises:
             NotFound: the query does not exist
         """
-        query_id = extract_id(query)
+        query_id = extract_attr(query, keys=["ID"])
         path = "/v1/query/%s/explain" % query_id
         response = await self._api.get(path, consistency=consistency, params={
             "dc": dc})

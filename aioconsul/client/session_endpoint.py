@@ -1,7 +1,7 @@
 from .bases import EndpointBase
-from aioconsul.common import extract_id
+from aioconsul.api import consul, extract_meta
 from aioconsul.exceptions import NotFound
-from aioconsul.structures import consul, extract_meta
+from aioconsul.util import extract_attr
 
 
 class SessionEndpoint(EndpointBase):
@@ -85,7 +85,7 @@ class SessionEndpoint(EndpointBase):
         Returns:
             bool: ``True`` on success
         """
-        session_id = extract_id(session)
+        session_id = extract_attr(session, keys=["ID"])
         response = await self._api.put("/v1/session/destroy", session_id,
                                        params={"dc": dc})
         return response.body is True
@@ -97,8 +97,8 @@ class SessionEndpoint(EndpointBase):
             session (ObjectID): Session ID
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             ObjectMeta: where value is the queried session
         Raises:
@@ -118,7 +118,7 @@ class SessionEndpoint(EndpointBase):
                 "CreateIndex": 1086449
             }
         """
-        session_id = extract_id(session)
+        session_id = extract_attr(session, keys=["ID"])
         response = await self._api.get("/v1/session/info", session_id,
                                        watch=watch,
                                        consistency=consistency,
@@ -136,8 +136,8 @@ class SessionEndpoint(EndpointBase):
             node (ObjectID): Node ID
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             CollectionMeta: where value is a list of
                                      sessions attached to node
@@ -157,7 +157,7 @@ class SessionEndpoint(EndpointBase):
                 ...
             ]
         """
-        node_id = extract_id(node, keys=["Node", "ID"])
+        node_id = extract_attr(node, keys=["Node", "ID"])
         response = await self._api.get("/v1/session/node", node_id, params={
             "dc": dc}, watch=watch, consistency=consistency)
         return consul(response)
@@ -168,8 +168,8 @@ class SessionEndpoint(EndpointBase):
         Parameters:
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             CollectionMeta: where value is a list of sessions
 
@@ -196,7 +196,7 @@ class SessionEndpoint(EndpointBase):
         """Renews a TTL-based session
 
         Parameters:
-            session (ObjectID): the session ID
+            session (ObjectID): Session ID
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
         Returns:
@@ -223,7 +223,7 @@ class SessionEndpoint(EndpointBase):
                   the server is under high load and is requesting
                   clients renew less often.
         """
-        session_id = extract_id(session)
+        session_id = extract_attr(session, keys=["ID"])
         response = await self._api.put("/v1/session/renew", session_id,
                                        params={"dc": dc})
         try:

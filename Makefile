@@ -1,7 +1,7 @@
 install:
 	python -m pip install -q -e .
 
-test:
+test: install
 	python -m pip install -r requirements-tests.txt
 	pytest --cov aioconsul --cov-report term-missing -v
 

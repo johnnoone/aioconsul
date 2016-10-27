@@ -2,7 +2,7 @@
 AIOConsul
 =========
 
-AIOConsul is a Python >= 3.5 library for requesting consul_ API, build on top
+AIOConsul is a Python >= 3.5 library for requesting Consul_ API, build on top
 of asyncio_ and aiohttp_.
 
 Currently, this library aims a full compatibility with consul 0.7.
@@ -50,6 +50,18 @@ And display the catalog::
         print(node.name, node.address)
 
 
+Important
+---------
+
+Version 0.7 breaks compatibility with previous versions:
+
+* It is closer to what HTTP API returns
+* It does not add consul property anymore
+* Response with metadata are now a 2 items length tuple
+  (:class:`~aioconsul.typing.CollectionMeta` or
+  :class:`~aioconsul.typing.ObjectMeta`)
+
+
 Focus
 -----
 
@@ -60,7 +72,8 @@ Focus
    api
    endpoints
    misc
+   contributing
 
-.. _consul: https://www.consul.io
+.. _Consul: https://www.consul.io
 .. _asyncio: http://asyncio.org
 .. _aiohttp: http://aiohttp.readthedocs.org

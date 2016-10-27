@@ -1,6 +1,6 @@
 from .bases import EndpointBase
-from aioconsul.common import extract_id
-from aioconsul.structures import consul
+from aioconsul.api import consul
+from aioconsul.util import extract_attr
 
 
 class HealthEndpoint(EndpointBase):
@@ -17,11 +17,11 @@ class HealthEndpoint(EndpointBase):
         """Returns the health info of a node.
 
         Parameters:
-            node (ObjectID): the node ID
+            node (ObjectID): Node ID
             dc (str): Specify datacenter that will be used.
                       Defaults to the agent's local datacenter.
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             CollectionMeta: where value is a list of checks
 
@@ -60,11 +60,13 @@ class HealthEndpoint(EndpointBase):
         fails, it is detected and the status is automatically changed to
         ``critical``.
         """
-        node_id = extract_id(node, keys=["Node", "ID"])
+        node_id = extract_attr(node, keys=["Node", "ID"])
 
-        path = "/v1/health/node/%s" % node_id
-        response = await self._api.get(path, params={
-            "dc": dc}, watch=watch, consistency=consistency)
+        params = {"dc": dc}
+        response = await self._api.get("/v1/health/node", node_id,
+                                       params=params,
+                                       watch=watch,
+                                       consistency=consistency)
         return consul(response)
 
     async def checks(self, service, *,
@@ -77,15 +79,17 @@ class HealthEndpoint(EndpointBase):
             near (str): With a node name will sort the node list in ascending
                         order based on the estimated round trip time from that
                         node
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             CollectionMeta: where value is a list of checks
         """
-        service_id = extract_id(service, ["ServiceID", "ID"])
-        path = "/v1/health/checks/%s" % service_id
-        response = await self._api.get(path, params={
-            "dc": dc, "near": near}, watch=watch, consistency=consistency)
+        service_id = extract_attr(service, keys=["ServiceID", "ID"])
+        params = {"dc": dc, "near": near}
+        response = await self._api.get("/v1/health/checks", service_id,
+                                       params=params,
+                                       watch=watch,
+                                       consistency=consistency)
         return consul(response)
 
     async def service(self, service, *,
@@ -99,18 +103,21 @@ class HealthEndpoint(EndpointBase):
             near (str): With a node name will sort the node list in ascending
                         order based on the estimated round trip time from that
                         node
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             CollectionMeta: where value is a list of nodes
         """
-        service_id = extract_id(service, ["ServiceID", "ID"])
-        path = "/v1/health/service/%s" % service_id
-        response = await self._api.get(path, params={
+        service_id = extract_attr(service, keys=["ServiceID", "ID"])
+        params = {
             "dc": dc,
             "near": near,
             "tag": tag,
-            "passing": passing}, watch=watch, consistency=consistency)
+            "passing": passing}
+        response = await self._api.get("/v1/health/service", service_id,
+                                       params=params,
+                                       watch=watch,
+                                       consistency=consistency)
         return consul(response)
 
     async def state(self, state, *,
@@ -123,8 +130,8 @@ class HealthEndpoint(EndpointBase):
             near (str): With a node name will sort the node list in ascending
                         order based on the estimated round trip time from that
                         node
-            watch (Blocking): do a blocking query
-            consistency (Consistency): force consistency
+            watch (Blocking): Do a blocking query
+            consistency (Consistency): Force consistency
         Returns:
             ObjectMeta: where value is a list of checks
 
@@ -165,7 +172,9 @@ class HealthEndpoint(EndpointBase):
               }
             ]
         """
-        path = "/v1/health/state/%s" % state
-        response = await self._api.get(path, params={
-            "dc": dc, "near": near}, watch=watch, consistency=consistency)
+        params = {"dc": dc, "near": near}
+        response = await self._api.get("/v1/health/state", state,
+                                       params=params,
+                                       watch=watch,
+                                       consistency=consistency)
         return consul(response)
