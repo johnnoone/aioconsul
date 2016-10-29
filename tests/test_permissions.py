@@ -1,6 +1,6 @@
 import asyncio
 import pytest
-from aioconsul import Consul, UnauthorizedError, NotFound
+from aioconsul import Consul, NotFound, TransactionError, UnauthorizedError
 from aioconsul.typing import Hidden
 
 
@@ -50,6 +50,20 @@ async def test_kv(client, server):
 
     with pytest.raises(NotFound):
         await client.acl.info(token)
+
+
+@pytest.mark.asyncio
+async def test_txn(client, server):
+    node = Consul(server.address)
+    txn = node.kv.prepare()
+    txn.set("foo", b"bar")
+    try:
+        await txn.execute()
+    except TransactionError as error:
+        assert error.errors[0]["What"] == "Permission denied"
+    else:
+        pytest.fail("Should have failed")
+    await txn.execute(token=server.token)
 
 
 @pytest.mark.asyncio

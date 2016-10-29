@@ -40,7 +40,7 @@ class Consul:
 
     @token.deleter
     def token(self):
-        self.api.token = None
+        del self.api.token
 
     @property
     def consistency(self):

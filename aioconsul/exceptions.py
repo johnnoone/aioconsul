@@ -1,4 +1,10 @@
-__all__ = ["ConsulError", "ConflictError", "NotFound", "UnauthorizedError"]
+__all__ = [
+    "ConsulError",
+    "ConflictError",
+    "NotFound",
+    "TransactionError",
+    "UnauthorizedError"
+]
 
 
 class ConsulError(Exception):
@@ -41,3 +47,20 @@ class UnauthorizedError(ConsulError):
         value (Object): object of the error
         meta (Meta): meta of the error
     """
+
+
+class TransactionError(Exception):
+    """Raised by failing transaction
+
+    Attributes:
+        errors (dict): The errors
+        operations (list): The operations
+        meta (Meta): meta of the error
+    """
+
+    def __init__(self, errors, operations, meta, *, msg=None):
+        self.errors = errors
+        self.operations = operations
+        self.meta = meta
+        msg = msg or "Transaction failed"
+        super().__init__(msg)

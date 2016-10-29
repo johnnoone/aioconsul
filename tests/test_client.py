@@ -11,6 +11,18 @@ async def test_client(server):
     assert repr(client) == "<Consul(%r)>" % server.address
 
 
+@pytest.mark.asyncio
+async def test_token(server):
+    client = Consul(server.address)
+    assert client.token is None
+    client.token = "foo"
+    assert client.token == "foo"
+    client.token = {"ID": "bar"}
+    assert client.token == "bar"
+    del client.token
+    assert client.token is None
+
+
 @pytest.mark.parametrize("input, expected", [
     ("10s", "10s"),
     (None, None),

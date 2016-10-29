@@ -16,23 +16,6 @@ __all__ = ["API", "consul"]
 logger = logging.getLogger(__name__)
 
 
-def render(response):
-    logger.info("%r", response)
-    if response.status >= 400:
-        data = consul(response)
-        if response.status in (401, 403):
-            raise UnauthorizedError(data.value, meta=data.meta)
-        if response.status == 404:
-            raise NotFound(data.value, meta=data.meta)
-        if response.status == 409:
-            value = data.value
-            if isinstance(value, Mapping):
-                value = value.get("Errors", value)
-            raise ConflictError(value, meta=data.meta)
-        raise ConsulError(data.value, meta=data.meta)
-    return response
-
-
 class API:
 
     """
@@ -60,10 +43,7 @@ class API:
         ]
 
         async def get_response(request):
-            print('>>', request)
-            response = await self.req_handler.request(**request)
-            print('<<', response)
-            return response
+            return await self.req_handler.request(**request)
 
         while middlewares:
             factory = middlewares.pop()
@@ -243,3 +223,17 @@ def parametrize_middleware(ctx, get_response):
         request["params"] = drop_null(params)
         return await get_response(request)
     return middleware
+
+
+def render(response):
+    logger.info("%r", response)
+    if response.status >= 400:
+        data = consul(response)
+        if response.status in (401, 403):
+            raise UnauthorizedError(data.value, meta=data.meta)
+        if response.status == 404:
+            raise NotFound(data.value, meta=data.meta)
+        if response.status == 409:
+            raise ConflictError(data.value, meta=data.meta)
+        raise ConsulError(data.value, meta=data.meta)
+    return response

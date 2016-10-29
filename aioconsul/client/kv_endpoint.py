@@ -1,6 +1,7 @@
 from .bases import EndpointBase
 from aioconsul.api import consul, extract_meta
 from aioconsul.encoders import decode_value, encode_value
+from aioconsul.exceptions import ConflictError, TransactionError
 from aioconsul.util import extract_attr
 
 
@@ -557,6 +558,12 @@ class KVOperations(EndpointBase):
                     "dc": dc,
                     "token": token_id
                 })
+        except ConflictError as error:
+            errors = {elt["OpIndex"]: elt for elt in error.value["Errors"]}
+            ops = list(self.operations)
+            meta = error.meta
+            print(errors)
+            raise TransactionError(errors, ops, meta) from error
         except Exception as error:
             raise error
         else:

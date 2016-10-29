@@ -128,7 +128,8 @@ class SessionEndpoint(EndpointBase):
         try:
             result = response.body[0]
         except IndexError:
-            raise NotFound("No session for %r" % session_id)
+            meta = extract_meta(response.headers)
+            raise NotFound("No session for %r" % session_id, meta=meta)
         return consul(result, meta=extract_meta(response.headers))
 
     async def node(self, node, *, dc=None, watch=None, consistency=None):
@@ -231,5 +232,6 @@ class SessionEndpoint(EndpointBase):
         try:
             result = response.body[0]
         except IndexError:
-            raise NotFound("No session for %r" % session_id)
+            meta = extract_meta(response.headers)
+            raise NotFound("No session for %r" % session_id, meta=meta)
         return consul(result, meta=extract_meta(response.headers))
