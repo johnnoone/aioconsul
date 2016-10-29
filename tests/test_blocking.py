@@ -1,6 +1,5 @@
 import asyncio
 import pytest
-from aioconsul import Consul
 from collections.abc import Mapping, Sequence
 
 
@@ -8,7 +7,8 @@ from collections.abc import Mapping, Sequence
 async def test_nodes(client, server, event_loop):
     _, meta = await client.catalog.nodes()
     watch1 = event_loop.create_task(client.catalog.nodes(watch=meta))
-    watch2 = event_loop.create_task(client.catalog.node(server.name, watch=meta))
+    watch2 = event_loop.create_task(client.catalog.node(server.name,
+                                                        watch=meta))
     release = event_loop.create_task(client.catalog.register({
         "Node": "foobar",
         "Address": "192.168.10.10",
@@ -40,7 +40,8 @@ async def test_nodes(client, server, event_loop):
 async def test_services(client, event_loop):
     _, meta = await client.catalog.services()
     watch1 = event_loop.create_task(client.catalog.services(watch=meta))
-    watch2 = event_loop.create_task(client.catalog.service("foobar", watch=meta))
+    watch2 = event_loop.create_task(client.catalog.service("foobar",
+                                                           watch=meta))
     release = event_loop.create_task(client.catalog.register({
         "Node": "foobar",
         "Address": "192.168.10.10",
@@ -50,7 +51,7 @@ async def test_services(client, event_loop):
         }
     }))
 
-    await asyncio.wait([watch1,  watch2, release], loop=event_loop, timeout=5)
+    await asyncio.wait([watch1, watch2, release], loop=event_loop, timeout=5)
 
     data, _ = watch1.result()
     assert isinstance(data, Mapping)

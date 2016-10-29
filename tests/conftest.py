@@ -4,7 +4,7 @@ import pytest
 import subprocess
 import time
 from aioconsul import Consul
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from uuid import uuid4
 
 
@@ -28,22 +28,25 @@ def master_token():
 
 @pytest.fixture(scope="session")
 def server(master_token):
-    conf = {
-          "node_name": "server1",
-          "server": True,
-          "acl_datacenter": "dc1",
-          "acl_master_token": master_token
-    }
 
-    with NamedTemporaryFile(mode="w+") as file:
+    with NamedTemporaryFile(mode="w+") as file, TemporaryDirectory() as dir:
+        conf = {
+            "bootstrap_expect": 1,
+            "node_name": "server1",
+            "server": True,
+            "acl_datacenter": "dc1",
+            "acl_default_policy": "deny",
+            "acl_master_token": master_token,
+            "data_dir": dir,
+            "advertise_addr": "127.0.0.1"
+        }
         json.dump(conf, file)
         file.seek(0)
-
         env = os.environ.copy()
         env.setdefault('GOMAXPROCS', '4')
         bin = env.get("CONSUL_BIN", "consul")
 
-        proc = run([bin, "agent", "-dev", "-config-file", file.name], env=env)
+        proc = run([bin, "agent", "-config-file", file.name], env=env)
 
         buf = bytearray()
         while b"cluster leadership acquired" not in buf:
@@ -66,11 +69,24 @@ def client(server, event_loop):
 
     # handle some cleanup
     async def cleanup(consul):
+        consul.token = server.token
         keys, meta = await consul.kv.keys("")
         for key in keys:
             await consul.kv.delete(key)
+
         await consul.catalog.deregister({
             "Node": "foobar"
         })
+
+        # remove created tokens
+        tokens, meta = await consul.acl.items()
+        for token in tokens:
+            if token["Name"].startswith("foo"):
+                await consul.acl.delete(token)
+
+        # remove prepared queries
+        queries = await consul.query.items()
+        for query in queries:
+            await consul.query.delete(query)
 
     event_loop.run_until_complete(cleanup(consul))

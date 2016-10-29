@@ -1,5 +1,4 @@
 import pytest
-from aioconsul import Consul
 from collections.abc import Mapping, Sequence
 
 

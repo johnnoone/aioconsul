@@ -1,5 +1,5 @@
 import pytest
-from aioconsul import Consul, ConsulError
+from aioconsul import ConsulError
 
 
 @pytest.mark.asyncio

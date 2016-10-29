@@ -170,6 +170,11 @@ class QueryEndpoint(EndpointBase):
                 "ID": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05"
             }
         """
+
+        if "Token" in query:
+            # in case of a full token object...
+            query["Token"] = extract_attr(query["Token"], keys=["ID"])
+
         response = await self._api.post("/v1/query",
                                         params={"dc": dc}, json=query)
         return response.body

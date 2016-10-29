@@ -1,6 +1,5 @@
 import pytest
-from aioconsul import Consul
-from collections.abc import Mapping, Sequence
+from datetime import timedelta
 
 
 @pytest.mark.asyncio
@@ -20,7 +19,7 @@ async def test_check_ttl(client, server):
     check = {
         "ID": "foobar",
         "Name": "Foobar bar check",
-        "TTL": "2s",
+        "TTL": timedelta(seconds=2),
     }
     result = await client.checks.register(check)
     assert result is True

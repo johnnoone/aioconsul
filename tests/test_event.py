@@ -1,5 +1,4 @@
 import pytest
-from aioconsul import Consul
 from collections.abc import Mapping, Sequence
 
 
@@ -26,7 +25,6 @@ async def test_event(client):
     assert "Index" in meta
     assert "KnownLeader" not in meta
     assert "LastIndex" not in meta
-
 
 
 @pytest.mark.asyncio

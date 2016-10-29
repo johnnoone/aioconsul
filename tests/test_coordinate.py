@@ -1,11 +1,11 @@
 import pytest
-from aioconsul import Consul
 from collections.abc import Mapping, Sequence
 
 
 @pytest.mark.asyncio
 async def test_endpoint(client):
-    assert repr(client.coordinate) == "<CoordinateEndpoint(%r)>" % str(client.address)
+    name = "<CoordinateEndpoint(%r)>" % str(client.address)
+    assert repr(client.coordinate) == name
 
 
 @pytest.mark.asyncio

@@ -90,6 +90,8 @@ class SessionEndpoint(EndpointBase):
                                        params={"dc": dc})
         return response.body is True
 
+    delete = destroy
+
     async def info(self, session, *, dc=None, watch=None, consistency=None):
         """Queries a given session
 

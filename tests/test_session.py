@@ -1,5 +1,5 @@
 import pytest
-from aioconsul import Consul, ConsulError, NotFound
+from aioconsul import ConsulError, NotFound
 from collections.abc import Mapping, Sequence
 
 

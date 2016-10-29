@@ -1,11 +1,10 @@
 import pytest
-from aioconsul import Consul
-from collections.abc import Mapping, Sequence
 
 
 @pytest.mark.asyncio
 async def test_endpoint(client):
-    assert repr(client.services) == "<ServicesEndpoint(%r)>" % str(client.address)
+    name = "<ServicesEndpoint(%r)>" % str(client.address)
+    assert repr(client.services) == name
 
 
 @pytest.mark.asyncio

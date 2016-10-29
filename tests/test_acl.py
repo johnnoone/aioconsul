@@ -1,6 +1,5 @@
 import pytest
-from aioconsul import Consul
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 
 
 @pytest.mark.asyncio
@@ -83,12 +82,13 @@ rule_json = """{
   }
 }"""
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("input, expected", [
     (rule_hcl, rule_dict),
     (rule_json, rule_dict),
     (rule_dict, rule_dict)
-])
+], ids=["hcl", "json", "dict"])
 async def test_rules(client, input, expected):
     token = {
         "Name": "my-app-token",

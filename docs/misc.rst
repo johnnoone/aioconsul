@@ -134,12 +134,23 @@ Here is the full list of types:
     queries.
 
 
+.. class:: aioconsul.typing.Duration
+
+    Defines a duration. Can be specified in the form of "10s" or "5m" or
+    a ``datetime.timedelta``.
+
+    For example, these objects are equivalent::
+
+        timedelta(seconds=150)
+        "2m30s"
+
+
 .. class:: aioconsul.typing.Blocking
 
     Defines a blocking query.
 
     It must be a :class:`~aioconsul.typing.ObjectIndex` or better a tuple where
-    second value is a Duration.
+    second value is a :class:`~aioconsul.typing.Duration`.
 
     For example these values are equivalent::
 

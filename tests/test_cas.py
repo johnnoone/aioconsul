@@ -1,6 +1,6 @@
 import pytest
-from aioconsul import Consul, NotFound
-from collections.abc import Mapping, Sequence
+from aioconsul import NotFound
+from collections.abc import Sequence
 
 
 @pytest.mark.asyncio
@@ -11,9 +11,9 @@ async def test_endpoint(client):
 @pytest.mark.asyncio
 async def test_create_only(client):
     await cas(client, "foo", b"bar", 0, True)
-    data = await present(client, "foo", b"bar")
+    await present(client, "foo", b"bar")
     await cas(client, "foo", b"baz", 0, True)
-    data = await present(client, "foo", b"bar")
+    await present(client, "foo", b"bar")
 
 
 @pytest.mark.asyncio
@@ -37,7 +37,7 @@ async def test_cas_absent(client):
 
 
 @pytest.mark.asyncio
-async def test_transaction(client):
+async def test_transaction(client, master_token):
     txn = client.kv.prepare()
     txn.cas("foo", b"bar", index=0)
     ops = await txn.execute()

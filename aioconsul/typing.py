@@ -22,5 +22,19 @@ class Consistency(Enum):
     consistent = "consistent"
 
 # TODO better definition of blocking
-BlockWait = NamedTuple('BlockWait', [('index', ObjectIndex), ('wait', Any)])
+BlockWait = NamedTuple('BlockWait', [
+    ('index', ObjectIndex),
+    ('wait', Duration)
+])
 Blocking = Union[ObjectIndex, BlockWait]
+
+#
+
+
+class Hidden:
+    """Hidden value.
+
+    Mostly Tokens will be redacted and displayed as <hidden>
+    unless a management token is used.
+    """
+    pass

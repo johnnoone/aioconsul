@@ -1,6 +1,6 @@
 import pytest
-from aioconsul import Consul, NotFound
-from collections.abc import Mapping, Sequence
+from aioconsul import NotFound
+from collections.abc import Sequence
 
 
 @pytest.mark.asyncio
@@ -42,12 +42,12 @@ async def test_get(client):
 
 @pytest.mark.asyncio
 async def test_cas(client):
-    result = await client.kv.set("foo", bytes("bar", encoding="utf-8"))
+    result = await client.kv.set("foo", b"bar")
     assert result is True
     result, cas = await client.kv.get("foo")
-    result = await client.kv.cas("foo", bytes("baz", encoding="utf-8"), index=999)
+    result = await client.kv.cas("foo", b"baz", index=999)
     assert result is False
-    result = await client.kv.cas("foo", bytes("qux", encoding="utf-8"), index=cas)
+    result = await client.kv.cas("foo", b"qux", index=cas)
     assert result is True
     result, cas = await client.kv.get("foo")
     assert result["Value"] == bytes("qux", encoding="utf-8")

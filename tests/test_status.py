@@ -1,5 +1,4 @@
 import pytest
-from aioconsul import Consul
 
 
 @pytest.mark.asyncio

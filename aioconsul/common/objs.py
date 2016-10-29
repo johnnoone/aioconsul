@@ -6,18 +6,18 @@ Response = namedtuple("Response", "url status body headers method")
 
 class Response:
 
-    def __init__(self, url, status, body, headers, method):
-        self.url = url
+    def __init__(self, path, status, body, headers, method):
+        self.path = path
         self.status = status
         self.body = body
         self.headers = headers
         self.method = method
 
     def __repr__(self):
-        return "<%s(method=%r, url=%r, status=%r, body=%r, headers=%r)>" % (
+        return "<%s(method=%r, path=%r, status=%r, body=%r, headers=%r)>" % (
             self.__class__.__name__,
             self.method,
-            self.url,
+            self.path,
             self.status,
             self.body,
             self.headers

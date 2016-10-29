@@ -1,6 +1,6 @@
 import pytest
-from aioconsul import Consul, NotFound
-from collections.abc import Mapping, Sequence
+from aioconsul import NotFound
+from collections.abc import Sequence
 
 
 @pytest.mark.asyncio
@@ -33,9 +33,9 @@ async def test_transaction(client):
     ops = await tx.execute()
     assert isinstance(ops, Sequence)
     assert ops[0]["Key"] == "foo"
-    assert ops[0]["Value"] == None
+    assert ops[0]["Value"] is None
     assert ops[1]["Key"] == "foo/bar"
-    assert ops[1]["Value"] == None
+    assert ops[1]["Value"] is None
     assert ops[2]["Key"] == "foo"
     assert ops[2]["Value"] == b"bar"
     assert ops[3]["Key"] == "foo/bar"

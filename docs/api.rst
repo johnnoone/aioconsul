@@ -15,7 +15,12 @@ simple.
 
     .. attribute:: token
 
-          str – Token ID
+          ObjectID – Token ID
+
+          You can set any token, like master token or any token created by
+          :class:`~aioconsul.client.ACLEndpoint`.
+
+          This attribute it get/set/deletable.
 
     .. attribute:: address
 

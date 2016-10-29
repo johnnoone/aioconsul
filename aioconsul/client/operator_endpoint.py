@@ -66,10 +66,9 @@ class OperatorEndpoint(EndpointBase):
         Note that the latest configuration may not yet be committed if changes
         are in flight.
         """
-        response = await self._api.get(
-            "/v1/operator/raft/configuration",
-            params={"dc": dc},
-            consistency=consistency)
+        response = await self._api.get("/v1/operator/raft/configuration",
+                                       params={"dc": dc},
+                                       consistency=consistency)
         return response.body
 
     async def peer_delete(self, *, dc=None, address):
@@ -88,7 +87,7 @@ class OperatorEndpoint(EndpointBase):
         so that it is no longer affects the Raft quorum.
         """
         address = extract_attr(address, keys=["Address"])
-        response = await self._api.delete(
-            "/v1/operator/raft/peer",
-            params={"dc": dc, "address": address})
+        params = {"dc": dc, "address": address}
+        response = await self._api.delete("/v1/operator/raft/peer",
+                                          params=params)
         return response.status < 400

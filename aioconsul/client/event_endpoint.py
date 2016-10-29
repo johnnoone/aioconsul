@@ -37,17 +37,18 @@ class EventEndpoint(EndpointBase):
 
         The **ID** field uniquely identifies the newly fired event.
         """
-        if payload:
-            payload = encode_value(payload)
-
-        path = "/v1/event/fire/%s" % name
         params = {
             "dc": dc,
             "node": extract_pattern(node),
             "service": extract_pattern(service),
             "tag": extract_pattern(tag)
         }
-        response = await self._api.put(path, data=payload, params=params)
+        payload = encode_value(payload) if payload else None
+        response = await self._api.put(
+            "/v1/event/fire", name,
+            data=payload,
+            params=params,
+            headers={"Content-Type": "application/octet-stream"})
         result = format_event(response.body)
         return result
 

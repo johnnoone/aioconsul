@@ -1,6 +1,5 @@
 from aioconsul.api import API
 from aioconsul.common import cached_property
-from aioconsul.util import extract_attr
 from .acl_endpoint import ACLEndpoint
 from .agent_endpoint import AgentEndpoint
 from .catalog_endpoint import CatalogEndpoint
@@ -23,7 +22,7 @@ class Consul:
 
     def __init__(self, address, *, token=None, consistency=None, loop=None):
         self.api = API(address,
-                       token=extract_attr(token, keys=["ID"]),
+                       token=token,
                        consistency=consistency,
                        loop=loop)
 
@@ -34,6 +33,14 @@ class Consul:
     @property
     def token(self):
         return self.api.token
+
+    @token.setter
+    def token(self, token):
+        self.api.token = token
+
+    @token.deleter
+    def token(self):
+        self.api.token = None
 
     @property
     def consistency(self):

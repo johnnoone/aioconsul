@@ -54,11 +54,7 @@ class ACLEndpoint(EndpointBase):
                 "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
             }
         """
-
-        rules = token.get("Rules")
-        if rules is not None and not isinstance(rules, str):
-            token["Rules"] = encode_hcl(rules)
-
+        token = encode_token(token)
         response = await self._api.put("/v1/acl/create", json=token)
         return response.body
 
@@ -90,11 +86,7 @@ class ACLEndpoint(EndpointBase):
         The format of **Rules** is
         `documented here <https://www.consul.io/docs/internals/acl.html>`_.
         """
-
-        rules = token.get("Rules")
-        if rules is not None and not isinstance(rules, str):
-            token["Rules"] = encode_hcl(rules)
-
+        token = encode_token(token)
         response = await self._api.put("/v1/acl/create", json=token)
         return response.body
 
@@ -109,6 +101,8 @@ class ACLEndpoint(EndpointBase):
         token_id = extract_attr(token, keys=["ID"])
         response = await self._api.put("/v1/acl/destroy", token_id)
         return response.body
+
+    delete = destroy
 
     async def info(self, token):
         """Queries the policy of a given token.
@@ -142,12 +136,12 @@ class ACLEndpoint(EndpointBase):
         """
         token_id = extract_attr(token, keys=["ID"])
         response = await self._api.get("/v1/acl/info", token_id)
+        meta = extract_meta(response.headers)
         try:
-            result = response.body[0]
-            result["Rules"] = decode_hcl(result["Rules"])
+            result = decode_token(response.body[0])
         except IndexError:
-            raise NotFound
-        return consul(result, meta=extract_meta(response.headers))
+            raise NotFound(response.body, meta=meta)
+        return consul(result, meta=meta)
 
     async def clone(self, token):
         """Creates a new token by cloning an existing token
@@ -196,10 +190,7 @@ class ACLEndpoint(EndpointBase):
             ]
         """
         response = await self._api.put("/v1/acl/list")
-        results = []
-        for r in response.body:
-            r["Rules"] = decode_hcl(r["Rules"])
-            results.append(r)
+        results = [decode_token(r) for r in response.body]
         return consul(results, meta=extract_meta(response.headers))
 
     async def replication(self, *, dc=None):
@@ -264,3 +255,19 @@ class ACLEndpoint(EndpointBase):
         params = {"dc": dc}
         response = await self._api.get("/v1/acl/replication", params=params)
         return response.body
+
+
+def decode_token(token):
+    result = {}
+    result.update(token)
+    result["Rules"] = decode_hcl(token["Rules"])
+    return result
+
+
+def encode_token(token):
+    result = {}
+    result.update(token)
+    rules = token.get("Rules")
+    if rules is not None and not isinstance(rules, str):
+        result["Rules"] = encode_hcl(rules)
+    return result

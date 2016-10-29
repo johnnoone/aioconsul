@@ -61,7 +61,6 @@ class HealthEndpoint(EndpointBase):
         ``critical``.
         """
         node_id = extract_attr(node, keys=["Node", "ID"])
-
         params = {"dc": dc}
         response = await self._api.get("/v1/health/node", node_id,
                                        params=params,

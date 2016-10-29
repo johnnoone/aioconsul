@@ -1,6 +1,6 @@
-import json
 import logging
-from aioconsul.common import RequestHandler, Response
+from aioconsul.common import RequestHandler, Response, timedelta_to_duration
+from aioconsul.encoders import json
 from aioconsul.exceptions import (ConflictError,
                                   ConsulError,
                                   NotFound,
@@ -9,6 +9,7 @@ from aioconsul.util import extract_attr
 from collections import namedtuple
 from collections.abc import Mapping
 from functools import singledispatch
+from aioconsul.common.util import drop_null, bool_to_int
 
 __all__ = ["API", "consul"]
 
@@ -46,22 +47,44 @@ class API:
         self.token = token
         self.consistency = consistency
         self.req_handler = RequestHandler(address, loop=loop)
-        self.req_handler.on_prepare.connect(self._prepare_request)
+        self.req_handler.json_loader = json.loads
+        self._prepare_middlewares()
+
+    def _prepare_middlewares(self):
+        middlewares = [
+            token_middleware,
+            watch_middleware,
+            consistency_middleware,
+            body_middleware,
+            parametrize_middleware,
+        ]
+
+        async def get_response(request):
+            print('>>', request)
+            response = await self.req_handler.request(**request)
+            print('<<', response)
+            return response
+
+        while middlewares:
+            factory = middlewares.pop()
+            get_response = factory(self, get_response)
+        self.apply = get_response
+
+    @property
+    def token(self):
+        return self._token
+
+    @token.setter
+    def token(self, token):
+        self._token = extract_attr(token, keys=["ID"])
+
+    @token.deleter
+    def token(self):
+        self._token = None
 
     @property
     def address(self):
         return self.req_handler.address
-
-    def _prepare_request(self, sender, method, path, **kwargs):
-        """Reinject token and consistency into requests.
-        """
-        params = kwargs.setdefault('params', {})
-        params.setdefault('token', self.token)
-        if self.consistency == 'consistent' and 'stale' not in params:
-            params.setdefault('consistent', True)
-        if self.consistency == 'stale' and 'consistent' not in params:
-            params.setdefault('stale', True)
-        return kwargs
 
     async def get(self, *path, **kwargs):
         return await self.request("GET", *path, **kwargs)
@@ -76,38 +99,31 @@ class API:
         return await self.request("DELETE", *path, **kwargs)
 
     async def request(self, method, *path, **kwargs):
-        # TODO maybe not the right place, but...
-        path = flatten_path(path)
-        params = kwargs.setdefault("params", {})
-        watch = kwargs.pop("watch", None)
-        if watch:
-            index, wait = extract_blocking(watch)
-            params.update({
-                "index": index,
-                "wait": wait
-            })
-        consistency = kwargs.pop("consistency", None)
-        if consistency is not None:
-            params.pop("stale", None)
-            params.pop("consistent", None)
-            params["consistent" if consistency else "stale"] = True
-
-        response = await self.req_handler.request(method, path, **kwargs)
+        path = path_join(path)
+        request = kwargs
+        request.setdefault("headers", {})
+        request.setdefault("params", {})
+        request.update({"path": path, "method": method})
+        response = await self.apply(request)
         return render(response)
+
+    def __del__(self):
+        if self.req_handler:
+            self.req_handler.close()
 
     def __repr__(self):
         return "<%s(%r)>" % (self.__class__.__name__, self.address)
 
 
-def flatten_path(path):
+def path_join(path):
     if isinstance(path, (list, tuple)):
-        path = ''.join(flatten_path(p) for p in path)
+        path = ''.join(path_join(p) for p in path)
     path = '/%s' % path
     return path.replace('//', '/')
 
 
 def extract_blocking(obj):
-    """Extract index and watch from :class:`Blocking`.
+    """Extract index and watch from :class:`Blocking`
 
     Parameters:
         obj (Blocking): the blocking object
@@ -155,3 +171,74 @@ def extract_meta(headers):
             }.get(k.lower(), k)
             meta[k] = json.loads(v)
     return meta
+
+
+def format_duration(obj):
+    if obj is None:
+        return None
+    if isinstance(obj, str):
+        return obj
+    return timedelta_to_duration(obj)
+
+
+def consistency_middleware(ctx, get_response):
+    async def middleware(request):
+        params = request.setdefault("params", {})
+        consistency = request.pop("consistency", None)
+        if consistency is not None:
+            params.pop("stale", None)
+            params.pop("consistent", None)
+            params["consistent" if consistency else "stale"] = True
+        elif ctx.consistency == 'consistent' and params.get("stale") is None:
+            params['consistent'] = True
+        elif ctx.consistency == 'stale' and params.get("consistent") is None:
+            params['stale'] = True
+        return await get_response(request)
+    return middleware
+
+
+def token_middleware(ctx, get_response):
+    """Reinject token and consistency into requests.
+    """
+    async def middleware(request):
+        params = request.setdefault('params', {})
+        if params.get("token") is None:
+            params['token'] = ctx.token
+        return await get_response(request)
+    return middleware
+
+
+def watch_middleware(ctx, get_response):
+    async def middleware(request):
+        watch = request.pop("watch", None)
+        if watch:
+            index, wait = extract_blocking(watch)
+            params = request.setdefault("params", {})
+            params.update({
+                "index": index,
+                "wait": format_duration(wait)
+            })
+        return await get_response(request)
+    return middleware
+
+
+def body_middleware(ctx, get_response):
+    async def middleware(request):
+        data = request.pop("json", None)
+        if data is not None:
+            data = drop_null(data)
+            request["data"] = json.dumps(data)
+            request["headers"].setdefault("Content-Type", "application/json")
+        response = await get_response(request)
+        return response
+    return middleware
+
+
+def parametrize_middleware(ctx, get_response):
+    async def middleware(request):
+        params = request.setdefault("params", {})
+        if isinstance(params, dict):
+            params = {k: bool_to_int(v) for k, v in params.items()}
+        request["params"] = drop_null(params)
+        return await get_response(request)
+    return middleware
