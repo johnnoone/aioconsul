@@ -176,7 +176,7 @@ class QueryEndpoint(EndpointBase):
             query["Token"] = extract_attr(query["Token"], keys=["ID"])
 
         response = await self._api.post("/v1/query",
-                                        params={"dc": dc}, json=query)
+                                        params={"dc": dc}, data=query)
         return response.body
 
     async def read(self, query, *, dc=None, watch=None, consistency=None):
@@ -212,7 +212,7 @@ class QueryEndpoint(EndpointBase):
         """
         query_id = extract_attr(query, keys=["ID"])
         response = await self._api.put("/v1/query", query_id,
-                                       params={"dc": dc}, json=query)
+                                       params={"dc": dc}, data=query)
         return response.status == 200
 
     async def delete(self, query, *, dc=None):

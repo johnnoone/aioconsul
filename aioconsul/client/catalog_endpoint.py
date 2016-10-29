@@ -155,7 +155,7 @@ class CatalogEndpoint(EndpointBase):
             entry["WriteRequest"] = {
                 "Token": token
             }
-        response = await self._api.put("/v1/catalog/register", json=entry)
+        response = await self._api.put("/v1/catalog/register", data=entry)
         return response.status == 200
 
     async def deregister_node(self, node):
@@ -262,7 +262,7 @@ class CatalogEndpoint(EndpointBase):
             entry["WriteRequest"] = {
                 "Token": extract_attr(write_token, keys=["ID"])
             }
-        response = await self._api.put("/v1/catalog/deregister", json=entry)
+        response = await self._api.put("/v1/catalog/deregister", data=entry)
         return response.status == 200
 
     async def datacenters(self):

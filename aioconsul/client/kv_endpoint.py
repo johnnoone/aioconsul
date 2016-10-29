@@ -552,7 +552,7 @@ class KVOperations(EndpointBase):
         try:
             response = await self._api.put(
                 "/v1/txn",
-                json=self.operations,
+                data=self.operations,
                 params={
                     "dc": dc,
                     "token": token_id

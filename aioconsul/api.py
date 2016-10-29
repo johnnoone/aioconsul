@@ -224,11 +224,12 @@ def watch_middleware(ctx, get_response):
 
 def body_middleware(ctx, get_response):
     async def middleware(request):
-        data = request.pop("json", None)
-        if data is not None:
+        data = request.get("data", None)
+        mime = request["headers"].get("Content-Type")
+        if data is not None and not mime:
             data = drop_null(data)
             request["data"] = json.dumps(data)
-            request["headers"].setdefault("Content-Type", "application/json")
+            request["headers"]["Content-Type"] = "application/json"
         response = await get_response(request)
         return response
     return middleware

@@ -59,7 +59,7 @@ simple.
         leader, a cluster that is unavailable will still be able to respond to
         queries.
 
-    .. comethod:: get(*path, params, headers, body, json)
+    .. comethod:: get(*path, params, headers, data)
 
         Performs a GET request
 
@@ -69,13 +69,11 @@ simple.
         :type params: Dict[str, Any]
         :param headers: HTTP headers
         :type headers: Dict[str, str]
-        :param body: content body
-        :type body: bytes
-        :param json: json body
-        :type json: object
+        :param data: content body
+        :type data: object
         :rtype: Response
 
-    .. comethod:: post(*path, params, headers, body, json)
+    .. comethod:: post(*path, params, headers, data)
 
         Performs a POST request
 
@@ -85,13 +83,11 @@ simple.
         :type params: Dict[str, Any]
         :param headers: HTTP headers
         :type headers: Dict[str, str]
-        :param body: content body
-        :type body: bytes
-        :param json: json body
-        :type json: object
+        :param data: content body
+        :type data: object
         :rtype: Response
 
-    .. comethod:: put(*path, params, headers, body, json)
+    .. comethod:: put(*path, params, headers, data)
 
         Performs a PUT request
 
@@ -101,13 +97,11 @@ simple.
         :type params: Dict[str, Any]
         :param headers: HTTP headers
         :type headers: Dict[str, str]
-        :param body: content body
-        :type body: bytes
-        :param json: json body
-        :type json: object
+        :param data: content body
+        :type data: object
         :rtype: Response
 
-    .. comethod:: delete(*path, params, headers, body, json)
+    .. comethod:: delete(*path, params, headers, data)
 
         Performs a DELETE request
 
@@ -117,13 +111,11 @@ simple.
         :type params: Dict[str, Any]
         :param headers: HTTP headers
         :type headers: Dict[str, str]
-        :param body: content body
-        :type body: bytes
-        :param json: json body
-        :type json: object
+        :param data: content body
+        :type data: object
         :rtype: Response
 
-    .. comethod:: request(method, *path, params, headers, body, json)
+    .. comethod:: request(method, *path, params, headers, data)
 
         Performs a request to path
 
@@ -135,10 +127,8 @@ simple.
         :type params: Dict[str, Any]
         :param headers: HTTP headers
         :type headers: Dict[str, str]
-        :param body: content body
-        :type body: bytes
-        :param json: json body
-        :type json: object
+        :param data: content body
+        :type data: object
         :rtype: Response
 
 

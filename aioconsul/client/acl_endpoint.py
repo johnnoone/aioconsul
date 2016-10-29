@@ -55,7 +55,7 @@ class ACLEndpoint(EndpointBase):
             }
         """
         token = encode_token(token)
-        response = await self._api.put("/v1/acl/create", json=token)
+        response = await self._api.put("/v1/acl/create", data=token)
         return response.body
 
     async def update(self, token):
@@ -87,7 +87,7 @@ class ACLEndpoint(EndpointBase):
         `documented here <https://www.consul.io/docs/internals/acl.html>`_.
         """
         token = encode_token(token)
-        response = await self._api.put("/v1/acl/create", json=token)
+        response = await self._api.put("/v1/acl/create", data=token)
         return response.body
 
     async def destroy(self, token):

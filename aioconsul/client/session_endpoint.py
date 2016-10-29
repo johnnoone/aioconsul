@@ -71,7 +71,7 @@ class SessionEndpoint(EndpointBase):
         """
         response = await self._api.put(
             "/v1/session/create",
-            json=session,
+            data=session,
             params={"dc": dc})
         return response.body
 

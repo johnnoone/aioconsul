@@ -119,7 +119,7 @@ class ChecksEndpoint(EndpointBase):
         params = {"token": token_id}
         response = await self._api.put("/v1/agent/check/register",
                                        params=params,
-                                       json=check)
+                                       data=check)
         return response.status == 200
 
     async def deregister(self, check):
@@ -178,5 +178,5 @@ class ChecksEndpoint(EndpointBase):
             "Output": note
         }
         response = await self._api.put("/v1/agent/check/update", check_id,
-                                       json=data)
+                                       data=data)
         return response.status == 200

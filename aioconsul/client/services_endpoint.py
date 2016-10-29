@@ -112,7 +112,7 @@ class ServicesEndpoint(EndpointBase):
         the default value is ``False``.
         """
         response = await self._api.put("/v1/agent/service/register",
-                                       json=service)
+                                       data=service)
         return response.status == 200
 
     async def deregister(self, service):
