@@ -1,5 +1,6 @@
 import logging
-from aioconsul.common import RequestHandler, Response, timedelta_to_duration
+from aioconsul.common import (RequestHandler, Response, drop_null,
+                              bool_to_int, timedelta_to_duration)
 from aioconsul.encoders import json
 from aioconsul.exceptions import (ConflictError,
                                   ConsulError,
@@ -7,9 +8,7 @@ from aioconsul.exceptions import (ConflictError,
                                   UnauthorizedError)
 from aioconsul.util import extract_attr
 from collections import namedtuple
-from collections.abc import Mapping
 from functools import singledispatch
-from aioconsul.common.util import drop_null, bool_to_int
 
 __all__ = ["API", "consul"]
 
@@ -81,15 +80,20 @@ class API:
     async def request(self, method, *path, **kwargs):
         path = path_join(path)
         request = kwargs
-        request.setdefault("headers", {})
-        request.setdefault("params", {})
-        request.update({"path": path, "method": method})
+        request.update({
+            "path": path,
+            "method": method,
+            "headers": request.get("headers") or {},
+            "params": request.get("params") or {},
+        })
         response = await self.apply(request)
         return render(response)
 
-    def __del__(self):
+    def close(self):
         if self.req_handler:
             self.req_handler.close()
+
+    __del__ = close
 
     def __repr__(self):
         return "<%s(%r)>" % (self.__class__.__name__, self.address)
@@ -161,18 +165,45 @@ def format_duration(obj):
     return timedelta_to_duration(obj)
 
 
+def set_consistency(a, b, params):
+    if a == "consistent":
+        consistent, stale = True, None
+    elif a == "stale":
+        consistent, stale = None, True
+    elif a == "default":
+        consistent, stale = None, None
+
+    elif params.get("consistent"):
+        consistent, stale = True, None
+    elif params.get("stale"):
+        consistent, stale = None, True
+
+    elif b == "consistent":
+        consistent, stale = True, None
+    elif b == "stale":
+        consistent, stale = None, True
+    elif b == "default":
+        consistent, stale = None, None
+    else:
+        consistent, stale = None, None
+    return consistent, stale
+
+
 def consistency_middleware(ctx, get_response):
+    """Set consistency
+
+    Order:
+
+    1. consistency request
+    2. "stale" / "consistent" parameters
+    3. ctx consistency
+    """
     async def middleware(request):
         params = request.setdefault("params", {})
         consistency = request.pop("consistency", None)
-        if consistency is not None:
-            params.pop("stale", None)
-            params.pop("consistent", None)
-            params["consistent" if consistency else "stale"] = True
-        elif ctx.consistency == 'consistent' and params.get("stale") is None:
-            params['consistent'] = True
-        elif ctx.consistency == 'stale' and params.get("consistent") is None:
-            params['stale'] = True
+        a, b = set_consistency(consistency, ctx.consistency, params)
+        params["consistent"] = a
+        params["stale"] = b
         return await get_response(request)
     return middleware
 

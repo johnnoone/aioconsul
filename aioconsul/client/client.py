@@ -26,6 +26,12 @@ class Consul:
                        consistency=consistency,
                        loop=loop)
 
+    def close(self):
+        if self.api:
+            self.api.close()
+
+    __del__ = close
+
     @property
     def address(self):
         return self.api.address
