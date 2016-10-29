@@ -1,4 +1,4 @@
 Sphinx
 sphinxcontrib-asyncio
 sphinxcontrib-httpdomain
-# -e git+https://lab.errorist.xyz/sphinx/irrational.git#egg=irrational
+-e git+https://lab.errorist.xyz/sphinx/irrational.git#egg=irrational
