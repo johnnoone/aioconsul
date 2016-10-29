@@ -548,6 +548,8 @@ class KVOperations(EndpointBase):
             token (ObjectID): Token ID
         Returns:
             Collection: Results of operations.
+        Raise:
+            TransactionError: Transaction failed
         """
         token_id = extract_attr(token, keys=["ID"])
         try:

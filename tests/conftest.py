@@ -89,4 +89,7 @@ def client(server, event_loop):
         for query in queries:
             await consul.query.delete(query)
 
-    event_loop.run_until_complete(cleanup(consul))
+    try:
+        event_loop.run_until_complete(cleanup(consul))
+    except:
+        pass
