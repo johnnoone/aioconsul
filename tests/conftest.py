@@ -54,7 +54,7 @@ def server(master_token):
             time.sleep(.01)
             if proc.returncode is not None:
                 raise Exception("Server failed to start")
-
+        time.sleep(.5)
         yield Namespace(address="http://127.0.0.1:8500",
                         name="server1",
                         dc="dc1",

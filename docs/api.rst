@@ -132,7 +132,6 @@ simple.
         :rtype: Response
 
 
-
 .. autoclass:: aioconsul.api.Response
 
     .. attribute:: method
