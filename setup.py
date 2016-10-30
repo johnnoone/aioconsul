@@ -37,7 +37,6 @@ setup(
     install_requires=[
         'aiohttp>=1.0.2',
         'python-dateutil>=2.5.3',
-        'blinker>=1.4',
         'pyhcl>=0.2.1',
         'wheel>0.25.0'
     ],

@@ -1,4 +1,3 @@
-
 AIOConsul
 =========
 
@@ -8,6 +7,17 @@ of asyncio_ and aiohttp_.
 Currently, this library aims a full compatibility with consul 0.7.
 
 Sources are available at https://lab.errorist.xyz/aio/aioconsul.
+
+
+Build status
+------------
+
+.. image:: https://lab.errorist.xyz/aio/aioconsul/badges/master/build.svg
+   :target: https://lab.errorist.xyz/aio/aioconsul/commits/master
+
+.. image:: https://lab.errorist.xyz/aio/aioconsul/badges/master/coverage.svg
+  :target: https://lab.errorist.xyz/aio/aioconsul/commits/master
+
 
 Installation
 ------------

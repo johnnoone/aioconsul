@@ -1,6 +1,13 @@
 AIO Consul
 ----------
 
+.. image:: https://lab.errorist.xyz/aio/aioconsul/badges/master/build.svg
+   :target: https://lab.errorist.xyz/aio/aioconsul/commits/master
+
+.. image:: https://lab.errorist.xyz/aio/aioconsul/badges/master/coverage.svg
+  :target: https://lab.errorist.xyz/aio/aioconsul/commits/master
+
+
 Consul_ has multiple components, but as a whole, it is a tool for discovering
 and configuring services in your infrastructure, like:
 
