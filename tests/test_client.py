@@ -1,24 +1,52 @@
-import asyncio
+import pytest
 from aioconsul import Consul
+from aioconsul.api import format_duration, extract_blocking
+from datetime import timedelta
 
 
-def test_client():
-    client = Consul('http://foo')
-    assert client.host == 'http://foo'
-    assert client.version == 'v1'
+@pytest.mark.asyncio
+async def test_client(server):
+    client = Consul(server.address)
+    assert str(client.address) == server.address
+    assert repr(client) == "<Consul(%r)>" % server.address
 
 
-def test_low():
-    client = Consul()
+@pytest.mark.asyncio
+async def test_token(server):
+    client = Consul(server.address)
+    assert client.token is None
+    client.token = "foo"
+    assert client.token == "foo"
+    client.token = {"ID": "bar"}
+    assert client.token == "bar"
+    del client.token
+    assert client.token is None
 
-    @asyncio.coroutine
-    def run(client, fut):
-        response = yield from client.get('status/leader')
-        fut.set_result((yield from response.json()))
 
-    fut = asyncio.Future()
+@pytest.mark.parametrize("input, expected", [
+    ("10s", "10s"),
+    (None, None),
+    (timedelta(seconds=10), "10s"),
+])
+@pytest.mark.asyncio
+async def test_duration(input, expected):
+    assert format_duration(input) == expected
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run(client, fut))
 
-    assert fut.result().endswith(':8300')
+@pytest.mark.parametrize("input, expected", [
+    (10, (10, None)),
+    ((10, 10), (10, 10)),
+    ({"Index": 10}, (10, None)),
+])
+@pytest.mark.asyncio
+async def test_blocking(input, expected):
+    assert extract_blocking(input) == expected
+
+
+@pytest.mark.parametrize("input", [
+    ((1, 2, 3)),
+])
+@pytest.mark.asyncio
+async def test_blocking_error(input):
+    with pytest.raises(TypeError):
+        extract_blocking(input)

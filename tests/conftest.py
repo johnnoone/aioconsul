@@ -1,123 +1,92 @@
-import asyncio
 import json
-import logging
 import os
-import os.path
 import pytest
-import sys
+import subprocess
+import time
 from aioconsul import Consul
-from functools import wraps
-from subprocess import Popen, PIPE
-from time import sleep
-
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-
-HERE = os.path.dirname(os.path.abspath(__file__))
+from tempfile import NamedTemporaryFile, TemporaryDirectory
+from uuid import uuid4
 
 
-def async_test(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        coro = asyncio.coroutine(f)
-        future = coro(*args, **kwargs)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(pre_clean())
-        loop.run_until_complete(future)
-        pending = asyncio.Task.all_tasks()
-        if pending:
-            loop.run_until_complete(asyncio.wait(pending))
-    return wrapper
+def run(cmd, **kwargs):
+    kwargs.setdefault("stdout", subprocess.PIPE)
+    kwargs.setdefault("stderr", subprocess.PIPE)
+    return subprocess.Popen(cmd, **kwargs)
 
 
-@asyncio.coroutine
-def pre_clean():
-    client = Consul()
+class Namespace:
 
-    # remove checks
-    checks = yield from client.agent.checks()
-    for check in checks:
-        yield from client.agent.checks.delete(check)
-
-    # remove services
-    services = yield from client.agent.services()
-    for service in services:
-        if service.id != 'consul':
-            yield from client.agent.services.delete(service)
-
-    # remove keys
-    for key in (yield from client.kv.keys('')):
-        yield from client.kv.delete(key)
-
-    # remove sessions
-    sessions = yield from client.sessions()
-    for session in sessions:
-        yield from client.sessions.delete(session)
+    def __init__(self, **attrs):
+        for k, v in attrs.items():
+            setattr(self, k, v)
 
 
-class Node(object):
-    def __init__(self, name, config_file, server=False, leader=False):
-        self.name = name
-        self.config_file = config_file
-        self.server = server
-        self.leader = leader
-        self._proc = None
+@pytest.fixture(scope="session")
+def master_token():
+    return uuid4().__str__()
 
-    @property
-    def config(self):
-        with open(self.config_file) as file:
-            return json.load(file)
 
-    def start(self):
-        if self._proc:
-            raise Exception('Node %s is already running' % self.name)
+@pytest.fixture(scope="session")
+def server(master_token):
 
-        # reset tmp store
-        Popen(['rm', '-rf', self.config['data_dir']]).communicate()
-
+    with NamedTemporaryFile(mode="w+") as file, TemporaryDirectory() as dir:
+        conf = {
+            "bootstrap_expect": 1,
+            "node_name": "server1",
+            "server": True,
+            "acl_datacenter": "dc1",
+            "acl_default_policy": "deny",
+            "acl_master_token": master_token,
+            "data_dir": dir,
+            "advertise_addr": "127.0.0.1"
+        }
+        json.dump(conf, file)
+        file.seek(0)
         env = os.environ.copy()
-        env.setdefault('GOMAXPROCS', '2')
-        proc = Popen(['consul', 'agent', '-config-file=%s' % self.config_file],
-                     stdout=PIPE, stderr=PIPE, env=env, shell=False)
-        self._proc = proc
-        print('Starting %s [%s]' % (self.name, proc.pid))
-        for i in range(60):
-            with Popen(['consul', 'info'], stdout=PIPE, stderr=PIPE) as sub:
-                stdout, stderr = sub.communicate(timeout=5)
-                if self.leader:
-                    if 'leader = true' in stdout.decode('utf-8'):
-                        break
-                elif self.server:
-                    if 'server = true' in stdout.decode('utf-8'):
-                        break
-                elif not sub.returncode:
-                    break
-            sleep(1)
-        else:
-            raise Exception('Unable to start %s [%s]' % (self.name, proc.pid))
-        print('Node %s [%s] is ready to rock' % (self.name, proc.pid))
+        env.setdefault('GOMAXPROCS', '4')
+        bin = env.get("CONSUL_BIN", "consul")
 
-    def stop(self):
-        if not self._proc:
-            raise Exception('Node %s is not running' % self.name)
-        print('Halt %s [%s]' % (self.name, self._proc.pid))
-        result = self._proc.terminate()
-        self._proc = None
-        return result
+        proc = run([bin, "agent", "-config-file", file.name], env=env)
+
+        buf = bytearray()
+        while b"cluster leadership acquired" not in buf:
+            buf = proc.stdout.readline()
+            time.sleep(.01)
+            if proc.returncode is not None:
+                raise Exception("Server failed to start")
+        time.sleep(.5)
+        yield Namespace(address="http://127.0.0.1:8500",
+                        name="server1",
+                        dc="dc1",
+                        token=master_token, **conf)
+        proc.terminate()
 
 
-@pytest.fixture(scope="session", autouse=True)
-def leader(request):
-    config_file = os.path.join(HERE, 'consul-server.json')
-    node = Node('leader', config_file, True, True)
-    node.start()
-    request.addfinalizer(node.stop)
-    return node.config
+@pytest.fixture(scope="function")
+def client(server, event_loop):
+    consul = Consul(server.address, token=server.token, loop=event_loop)
+    yield consul
 
+    # handle some cleanup
+    async def cleanup(consul):
+        consul.token = server.token
+        keys, meta = await consul.kv.keys("")
+        for key in keys:
+            await consul.kv.delete(key)
 
-@pytest.fixture(scope="session", autouse=False)
-def node1(request):
-    config_file = os.path.join(HERE, 'consul-node.json')
-    node = Node('leader', config_file, False, False)
-    node.start()
-    request.addfinalizer(node.stop)
-    return node.config
+        await consul.catalog.deregister({
+            "Node": "foobar"
+        })
+
+        # remove created tokens
+        tokens, meta = await consul.acl.items()
+        for token in tokens:
+            if token["Name"].startswith("foo"):
+                await consul.acl.delete(token)
+
+        # remove prepared queries
+        queries = await consul.query.items()
+        for query in queries:
+            await consul.query.delete(query)
+
+    event_loop.run_until_complete(cleanup(consul))

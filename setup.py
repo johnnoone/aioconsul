@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
+import versioneer
 
 with open('README.rst') as file:
-    content = file.read()
+    long_description = file.read()
 
 setup(
-    name='aioconsul',
-    version='0.3',
-    description='Consul wrapper for asyncio',
-    long_description=content,
+    name="aioconsul",
+    long_description=long_description,
+    version=versioneer.get_version(),
+    description='async/await client for the Consul HTTP API',
     author='Xavier Barbosa',
     author_email='clint.northwood@gmail.com',
-    url='https://github.com/johnnoone/aioconsul',
+    url='http://aio.errorist.io/aioconsul',
     packages=find_packages(),
     keywords=[
         'infrastructure',
@@ -26,17 +27,20 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Software Development :: Quality Assurance',
         'Topic :: System :: Clustering',
         'Topic :: System :: Monitoring',
         'Topic :: System :: Networking :: Monitoring',
     ],
     install_requires=[
-        'aiohttp>=0.14.4'
+        'aiohttp>=1.0.2',
+        'python-dateutil>=2.5.3',
+        'blinker>=1.4',
+        'pyhcl>=0.2.1',
+        'wheel>0.25.0'
     ],
-    extras_require={
-        ':python_version=="3.3"': ['asyncio'],
-    }
+    license='BSD',
+    cmdclass=versioneer.get_cmdclass()
 )

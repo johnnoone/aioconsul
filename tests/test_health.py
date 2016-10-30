@@ -1,92 +1,54 @@
-import asyncio
 import pytest
-from aioconsul import Consul, ValidationError
-from conftest import async_test
+from collections.abc import Sequence
 
 
-@async_test
-def test_health():
-    client = Consul()
+@pytest.mark.asyncio
+async def test_endpoint(client):
+    assert repr(client.health) == "<HealthEndpoint(%r)>" % str(client.address)
 
-    for check in (yield from client.health(node='my-local-node')):
-        assert check.status == 'passing', check.__dict__
 
-    # create a bunch of services for the continuing tests
-    tasks = [
-        asyncio.async(client.agent.services.register_ttl('foo', '10s')),
-        asyncio.async(client.agent.services.register_ttl('bar', '10s')),
-        asyncio.async(client.agent.services.register_ttl('baz', '10s')),
-    ]
-    done, pending = yield from asyncio.wait(tasks)
+@pytest.mark.parametrize("node", [
+    "server1", {"Node": "server1"}, {"ID": "server1"}
+])
+@pytest.mark.asyncio
+async def test_node(client, node):
+    data, meta = await client.health.node(node)
+    assert isinstance(data, Sequence)
+    assert data[0]["Node"] == "server1"
+    assert_meta(meta)
 
-    tasks = [
-        asyncio.async(client.agent.checks.mark('service:foo', 'pass')),
-        asyncio.async(client.agent.checks.mark('service:bar', 'warn')),
-        asyncio.async(client.agent.checks.mark('service:baz', 'fail')),
-    ]
-    done, pending = yield from asyncio.wait(tasks)
 
-    for check in (yield from client.health(service='serfHealth')):
-        assert check.status == 'passing'
+@pytest.mark.parametrize("service", [
+    "redis", {"ServiceID": "redis"}, {"ID": "redis"}
+])
+@pytest.mark.asyncio
+async def test_checks(client, service):
+    data, meta = await client.health.checks(service)
+    assert isinstance(data, Sequence)
+    assert_meta(meta)
 
-    # test nodes
 
-    for node in (yield from client.health.nodes(service='foo')):
-        for check in node.checks:
-            if check.id == 'service:foo':
-                assert check.status == 'passing'
+@pytest.mark.parametrize("service", [
+    "redis", {"ServiceID": "redis"}, {"ID": "redis"}
+])
+@pytest.mark.asyncio
+async def test_service(client, service):
+    data, meta = await client.health.service(service)
+    assert isinstance(data, Sequence)
+    assert_meta(meta)
 
-    for node in (yield from client.health.nodes(service='bar')):
-        for check in node.checks:
-            if check.id == 'service:bar':
-                assert check.status == 'warning'
 
-    for node in (yield from client.health.nodes(service='baz')):
-        for check in node.checks:
-            if check.id == 'service:baz':
-                assert check.status == 'critical'
+@pytest.mark.parametrize("state", [
+    "any", "passing", "warning", "critical"
+])
+@pytest.mark.asyncio
+async def test_state(client, state):
+    data, meta = await client.health.state(state)
+    assert isinstance(data, Sequence)
+    assert_meta(meta)
 
-    # passing only
 
-    for node in (yield from client.health.nodes(service='foo', state='passing')):
-        for check in node.checks:
-            assert check.status == 'passing'
-        for service in node:
-            assert service.name == 'foo'
-
-    for node in (yield from client.health.nodes(service='bar', state='passing')):
-        for check in node.checks:
-            assert check.status == 'warning'
-        for service in node:
-            assert service.name == 'bar'
-
-    for node in (yield from client.health.nodes(service='baz', state='passing')):
-        for check in node.checks:
-            assert check.status == 'critical'
-        for service in node:
-            assert service.name == 'baz'
-
-    for check in (yield from client.health(state='passing')):
-        assert check.status == 'passing'
-
-    for check in (yield from client.health(state='warning')):
-        assert check.status == 'warning'
-
-    for check in (yield from client.health(state='critical')):
-        assert check.status == 'critical'
-
-    # mixing checks
-    with pytest.raises(ValidationError):
-        yield from client.health()  # node, service or state required
-
-    for check in (yield from client.health(node='my-local-node', state='passing')):
-        assert check.status == 'passing'
-
-    for check in (yield from client.health(node='my-local-node', service='foo')):
-        assert check.status == 'passing'
-
-    for check in (yield from client.health(node='my-local-node', service='bar')):
-        assert check.status == 'warning'
-
-    for check in (yield from client.health(node='my-local-node', service='baz')):
-        assert check.status == 'critical'
+def assert_meta(data):
+    assert "Index" in data
+    assert "KnownLeader" in data
+    assert "LastContact" in data

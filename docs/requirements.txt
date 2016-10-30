@@ -1,4 +1,4 @@
-Sphinx>=1.3.1
-# alabaster
-# sphinxcontrib-napoleon
-.
+Sphinx
+sphinxcontrib-asyncio
+sphinxcontrib-httpdomain
+-e git+https://lab.errorist.xyz/sphinx/irrational.git#egg=irrational
