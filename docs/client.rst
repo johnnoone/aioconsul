@@ -111,4 +111,12 @@ If needed, you can use the :class:`~aioconsul.api.API` directly.
         and :class:`aioconsul.client.StatusEndpoint` for implementation.
 
 
+Common exceptions
+-----------------
+
+.. autoclass:: aioconsul.SupportDisabled
+
+.. autoclass:: aioconsul.TransactionError
+
+
 .. _Consul: https://www.consul.io

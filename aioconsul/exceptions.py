@@ -2,6 +2,7 @@ __all__ = [
     "ConsulError",
     "ConflictError",
     "NotFound",
+    "SupportDisabled",
     "TransactionError",
     "UnauthorizedError"
 ]
@@ -49,15 +50,30 @@ class UnauthorizedError(ConsulError):
     """
 
 
+class SupportDisabled(Exception):
+    """Endpoint is not active.
+    """
+
+
 class TransactionError(Exception):
     """Raised by failing transaction
 
     Attributes:
-        errors (dict): The errors
-        operations (list): The operations
+        errors (Mapping): The errors where index is the index in operations
+        operations (Collection): The operations
         meta (Meta): meta of the error
-    """
 
+    For example token has not the sufficient rights for writing key::
+
+        errors = {
+            0: {"OpIndex": 0, "What": "Permission denied"}
+        }
+
+        operations = [
+            {"Verb": "get", "Key": "foo"},
+            {"Verb": "set", "Key": "bar", "Value": "YmFy", "Flags": None}
+        ]
+    """
     def __init__(self, errors, operations, meta, *, msg=None):
         self.errors = errors
         self.operations = operations

@@ -9,6 +9,7 @@ from aioconsul.exceptions import (ConflictError,
 from aioconsul.util import extract_attr
 from collections import namedtuple
 from functools import singledispatch
+from copy import deepcopy
 
 __all__ = ["API", "consul"]
 
@@ -83,8 +84,8 @@ class API:
         request.update({
             "path": path,
             "method": method,
-            "headers": request.get("headers") or {},
-            "params": request.get("params") or {},
+            "headers": deepcopy(request.get("headers") or {}),
+            "params": deepcopy(request.get("params") or {}),
         })
         response = await self.apply(request)
         return render(response)

@@ -548,7 +548,7 @@ class KVOperations(EndpointBase):
             token (ObjectID): Token ID
         Returns:
             Collection: Results of operations.
-        Raise:
+        Raises:
             TransactionError: Transaction failed
         """
         token_id = extract_attr(token, keys=["ID"])
@@ -562,10 +562,9 @@ class KVOperations(EndpointBase):
                 })
         except ConflictError as error:
             errors = {elt["OpIndex"]: elt for elt in error.value["Errors"]}
-            ops = list(self.operations)
+            operations = [op["KV"] for op in self.operations]
             meta = error.meta
-            print(errors)
-            raise TransactionError(errors, ops, meta) from error
+            raise TransactionError(errors, operations, meta) from error
         except Exception as error:
             raise error
         else:

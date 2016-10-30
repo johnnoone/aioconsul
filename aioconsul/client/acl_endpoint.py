@@ -189,7 +189,7 @@ class ACLEndpoint(EndpointBase):
               }
             ]
         """
-        response = await self._api.put("/v1/acl/list")
+        response = await self._api.get("/v1/acl/list")
         results = [decode_token(r) for r in response.body]
         return consul(results, meta=extract_meta(response.headers))
 
